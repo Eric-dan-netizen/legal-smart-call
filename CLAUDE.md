@@ -85,12 +85,21 @@
 默认使用总设计师模式（`claude` 启动）。
 其他角色按需：
 ```bash
-claude --claude-md .claude/roles/backend-dev.md    # 纯 NestJS 后端
-claude --claude-md .claude/roles/frontend-dev.md   # 纯 Vue3 前端
-claude --claude-md .claude/roles/code-reviewer.md  # 代码审查
+claude --claude-md .claude/roles/backend-dev.md              # 纯 NestJS 后端
+claude --claude-md .claude/roles/frontend-dev.md             # 纯 Vue3 前端
+claude --claude-md .claude/roles/code-reviewer.md            # 代码审查
+claude --claude-md .claude/roles/business-model-discussion.md  # 商业模式讨论
 ```
 
 通用规则（安全红线、worktree 隔离、自动执行权限）参考 `.claude/roles/common_rules.md`
+
+### 商业模式讨论规则
+
+讨论商业模式、产品定位、盈利逻辑时，自动加载 `.claude/roles/business-model-discussion.md`：
+- **魔鬼代言人**：不迎合，每个假设都要质疑
+- **成本验证**：所有数字与实际 API/人力成本交叉验证
+- **对齐再动手**：客户是谁、痛点是什么、为什么付费——三个问题不搞清楚不写代码
+- **保密**：商业讨论内容不写入 memory、不对外，仅在用户指定路径输出
 
 ## Worktree 隔离规则
 
