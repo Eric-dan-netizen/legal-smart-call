@@ -1,0 +1,31 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import Login from '../views/Login.vue'
+import Layout from '../views/Layout.vue'
+import Dashboard from '../views/Dashboard.vue'
+import Customers from '../views/Customers.vue'
+import Tasks from '../views/Tasks.vue'
+import Scripts from '../views/Scripts.vue'
+import Statistics from '../views/Statistics.vue'
+
+const routes = [
+  { path: '/', redirect: '/login' },
+  { path: '/login', component: Login },
+  {
+    path: '/',
+    component: Layout,
+    children: [
+      { path: 'dashboard', component: Dashboard },
+      { path: 'customers', component: Customers },
+      { path: 'tasks', component: Tasks },
+      { path: 'scripts', component: Scripts },
+      { path: 'statistics', component: Statistics },
+    ]
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router

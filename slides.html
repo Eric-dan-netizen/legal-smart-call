@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能外呼系统 · 商业分析</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #080C14;
+  --card: #111827;
+  --card2: #151D2B;
+  --cyan: #06D6FF;
+  --cyan-dim: #0588A8;
+  --red: #FF3B5C;
+  --orange: #FF8A3D;
+  --green: #2EE59A;
+  --purple: #9B5DE5;
+  --white: #FFFFFF;
+  --gray: #8892A4;
+  --gray-dim: #556176;
+  --border: #1E2D45;
+}
+
+body { background: var(--bg); font-family: 'Noto Sans SC', 'Inter', sans-serif; color: var(--white); overflow-x: hidden; }
+
+.slide {
+  width: 1280px; height: 720px;
+  margin: 40px auto;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--border), 0 20px 60px rgba(0,0,0,0.5);
+  page-break-after: always;
+}
+
+/* ── Grid lines (subtle tech feel) ── */
+.slide::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(rgba(6,214,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6,214,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ── Accent glow ── */
+.glow-cyan {
+  position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(6,214,255,0.12) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.glow-purple {
+  position: absolute;
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(155,93,229,0.10) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.glow-red {
+  position: absolute;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(255,59,92,0.08) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+
+.content { position: relative; z-index: 2; padding: 60px 80px; height: 100%; }
+
+.tag {
+  display: inline-block;
+  padding: 4px 14px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.tag-cyan { background: rgba(6,214,255,0.12); color: var(--cyan); border: 1px solid rgba(6,214,255,0.2); }
+.tag-red { background: rgba(255,59,92,0.12); color: var(--red); border: 1px solid rgba(255,59,92,0.2); }
+.tag-green { background: rgba(46,229,154,0.12); color: var(--green); border: 1px solid rgba(46,229,154,0.2); }
+.tag-orange { background: rgba(255,138,61,0.12); color: var(--orange); border: 1px solid rgba(255,138,61,0.2); }
+
+h1 { font-size: 56px; font-weight: 900; letter-spacing: -1px; line-height: 1.15; }
+h2 { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; }
+h3 { font-size: 20px; font-weight: 600; }
+
+.big-number { font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -2px; }
+.big-number span { font-size: 24px; font-weight: 400; color: var(--gray); }
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px 28px;
+}
+.stat-card .value { font-size: 42px; font-weight: 800; line-height: 1; }
+.stat-card .label { font-size: 13px; color: var(--gray); margin-top: 6px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px;
+}
+.card-accent-top { border-top: 3px solid var(--cyan); }
+.card-accent-left { border-left: 3px solid var(--cyan); }
+
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-16 { gap: 16px; } .gap-20 { gap: 20px; } .gap-24 { gap: 24px; } .gap-32 { gap: 32px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.flex-1 { flex: 1; }
+.mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; } .mt-20 { margin-top: 20px; } .mt-24 { margin-top: 24px; } .mt-32 { margin-top: 32px; } .mt-40 { margin-top: 40px; }
+.mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; }
+
+.text-cyan { color: var(--cyan); }
+.text-red { color: var(--red); }
+.text-orange { color: var(--orange); }
+.text-green { color: var(--green); }
+.text-purple { color: var(--purple); }
+.text-gray { color: var(--gray); }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 11px; }
+.text-lg { font-size: 18px; }
+.text-xl { font-size: 22px; }
+
+.bullet { position: relative; padding-left: 18px; font-size: 14px; color: var(--gray); line-height: 1.6; }
+.bullet::before { content: '›'; position: absolute; left: 2px; color: var(--cyan); font-weight: 700; font-size: 16px; }
+
+.footer-note {
+  position: absolute; bottom: 24px; left: 80px; right: 80px;
+  font-size: 10px; color: var(--gray-dim);
+  border-top: 1px solid var(--border); padding-top: 12px;
+}
+
+/* ── Progress dots ── */
+.progress {
+  position: absolute; top: 32px; right: 80px;
+  display: flex; gap: 6px;
+}
+.progress .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gray-dim);
+}
+.progress .dot.active { background: var(--cyan); width: 16px; border-radius: 3px; }
+
+@media print {
+  body { background: var(--bg); }
+  .slide {
+    page-break-after: always;
+    margin: 0; border-radius: 0;
+    box-shadow: none;
+    width: 1280px; height: 720px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SLIDE 1: Title ═══════════════════ -->
+<div class="slide">
+  <div class="glow-cyan" style="top:-80px;right:-80px;"></div>
+  <div class="glow-purple" style="bottom:-60px;left:-60px;"></div>
+  <div class="content flex flex-col" style="justify-content: center;">
+    <div class="tag tag-cyan mb-16">PRODUCT DISCOVERY · 2026</div>
+    <h1>法律行业<br>智能外呼系统</h1>
+    <div style="margin-top: 24px; font-size: 20px; color: var(--gray); font-weight: 300; line-height: 1.6;">
+      商业价值分析 · 痛点论证 · 反向验证 · 技术难点拆解
+    </div>
+    <div style="margin-top: 48px; display: flex; gap: 40px;">
+      <div><div style="font-size: 28px; font-weight: 700; color: var(--cyan);">14</div><div style="font-size: 12px; color: var(--gray);">分析维度</div></div>
+      <div><div style="font-size: 28px; font-weight: 700; color: var(--purple);">5</div><div style="font-size: 12px; color: var(--gray);">致命假设</div></div>
+      <div><div style="font-size: 28px; font-weight: 700; color: var(--red);">3</div><div style="font-size: 12px; color: var(--gray);">验证阶段</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 2: 谁在痛 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-red" style="top:-60px;left:30%;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-red mb-16">PAIN POINTS</div>
+    <h2>三个角色，三种痛</h2>
+    <div class="text-lg text-gray mt-8">核心发现：买的人（律所主任）和用的人（案源专员）是分离的</div>
+
+    <div class="flex gap-24 mt-32">
+      <!-- Card 1: 律所主任 -->
+      <div class="card flex-1" style="border-top: 3px solid var(--red);">
+        <div style="font-size: 48px;">👤</div>
+        <h3 class="mt-12">律所主任 / 合伙人</h3>
+        <div class="tag tag-red mt-8">最痛 — 没案子律所就没了</div>
+        <div class="bullet mt-20">月均案源获取花费 ¥5,000-15,000</div>
+        <div class="bullet">百度竞价单次点击 ¥50-200</div>
+        <div class="bullet">转化率不可量化，投放打水漂</div>
+        <div class="bullet">年化案源转化损失 ¥12-48 万</div>
+        <div class="mt-20 stat-card">
+          <div class="value text-red">70%</div>
+          <div class="label">律所主任认为案源是第一焦虑（>管理/行政/招聘）</div>
+        </div>
+      </div>
+
+      <!-- Card 2: 案源专员 -->
+      <div class="card flex-1" style="border-top: 3px solid var(--orange);">
+        <div style="font-size: 48px;">💼</div>
+        <h3 class="mt-12">案源专员 / 客服</h3>
+        <div class="tag tag-orange mt-8">执行痛 — 天天被拒绝</div>
+        <div class="bullet mt-20">日均被拒绝 20 次以上</div>
+        <div class="bullet">无标准话术引导，瞎说→挨骂</div>
+        <div class="bullet">Excel 记录一切，无成就感</div>
+        <div class="bullet">底薪 ¥4,000，提成靠天吃饭</div>
+        <div class="mt-20 stat-card">
+          <div class="value text-orange">&gt;70%</div>
+          <div class="label">岗位半年流失率</div>
+        </div>
+      </div>
+
+      <!-- Card 3: 客户 -->
+      <div class="card flex-1" style="border-top: 3px solid var(--purple);">
+        <div style="font-size: 48px;">📱</div>
+        <h3 class="mt-12">潜在客户</h3>
+        <div class="tag tag-purple mt-8">被推销感劝退 — 要的是咨询</div>
+        <div class="bullet mt-20">40% 还没决定是否找律师</div>
+        <div class="bullet">推销语气 vs 咨询需求 完全错配</div>
+        <div class="bullet">65万律师，不知道选哪个</div>
+        <div class="bullet">接到机器人电话 → 信任归零</div>
+        <div class="mt-20 stat-card">
+          <div class="value text-purple">40%</div>
+          <div class="label">只是先问问，还没决定委托</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">痛点数据来源：实际律所运营管理经验（项目方第一手数据）· 中国法律服务行业客户转化率白皮书（2025）· 律所人均薪酬报告</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 3: 竞品 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-cyan" style="top:-40px;right:-40px;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-cyan mb-16">COMPETITIVE LANDSCAPE</div>
+    <h2>为什么这个空白没人填？</h2>
+
+    <div class="flex gap-32 mt-32">
+      <!-- Left: competition table -->
+      <div class="flex-1 flex flex-col gap-12">
+        <div class="flex" style="font-size:11px;color:var(--gray-dim);padding:0 12px;">
+          <div style="width:100px;">竞品</div><div style="width:140px;">定位</div><div style="flex:1;">致命短板（对律所）</div>
+        </div>
+        <div class="flex items-center card" style="padding:14px 16px;border-left:3px solid var(--gray-dim);">
+          <div style="width:100px;font-weight:600;">百应科技</div><div style="width:140px;font-size:13px;color:var(--gray);">通用AI外呼</div><div style="flex:1;font-size:13px;color:var(--red);">无法务话术，合规无人兜底</div>
+        </div>
+        <div class="flex items-center card" style="padding:14px 16px;border-left:3px solid var(--gray-dim);">
+          <div style="width:100px;font-weight:600;">探迹</div><div style="width:140px;font-size:13px;color:var(--gray);">CRM+外呼</div><div style="flex:1;font-size:13px;color:var(--red);">推销型话术，不适配律师身份</div>
+        </div>
+        <div class="flex items-center card" style="padding:14px 16px;border-left:3px solid var(--gray-dim);">
+          <div style="width:100px;font-weight:600;">励销云</div><div style="width:140px;font-size:13px;color:var(--gray);">线索+外呼闭环</div><div style="flex:1;font-size:13px;color:var(--red);">纯工具，无法务know-how</div>
+        </div>
+        <div class="flex items-center card" style="padding:14px 16px;border-left:3px solid var(--gray-dim);">
+          <div style="width:100px;font-weight:600;">法蝉</div><div style="width:140px;font-size:13px;color:var(--gray);">律所管理系统</div><div style="flex:1;font-size:13px;color:var(--red);">只做管理不做案源</div>
+        </div>
+        <div class="flex items-center card" style="padding:14px 16px;border-left:3px solid var(--gray-dim);">
+          <div style="width:100px;font-weight:600;">华律网</div><div style="width:140px;font-size:13px;color:var(--gray);">C端案源平台</div><div style="flex:1;font-size:13px;color:var(--red);">线索全是比价客户</div>
+        </div>
+      </div>
+
+      <!-- Right: key insight -->
+      <div class="flex-1 flex flex-col gap-20">
+        <div class="card card-accent-top" style="background: linear-gradient(135deg, #111827, #0D1A2A);">
+          <div class="text-cyan text-lg font-weight:600 mb-12" style="font-weight:600;">市场空白</div>
+          <div style="font-size:14px;color:var(--white);line-height:1.7;">
+            没有一款产品把<br>
+            <span class="text-cyan" style="font-weight:600;">「AI外呼 + 法律话术 + 合规体系 + 微信跟进」</span><br>
+            捏成闭环
+          </div>
+        </div>
+        <div class="card" style="background: linear-gradient(135deg, #111827, #1A0A0F); border-top: 3px solid var(--red);">
+          <div class="text-red text-lg mb-12" style="font-weight:600;">⚠ 另一种解释</div>
+          <div style="font-size:13px;color:var(--gray);line-height:1.7;">
+            <div class="bullet">有付费意愿 + 出得起钱的律所可能 &lt;1,000家</div>
+            <div class="bullet">向律所卖SaaS靠地推，获客成本畸高</div>
+            <div class="bullet">法律合规雷太大，小公司扛不住</div>
+            <div class="bullet">案由多样，话术定制碎，ROI差</div>
+            <div class="bullet">百应、探迹、讯众都不做——市场教他们的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">竞品信息：各厂商官网公开定价页 · 法律科技行业分析报告（2025）· 阿里云/腾讯云语音服务官方文档</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 4: 差异壁垒 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-purple" style="bottom:-60px;left:50%;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-purple mb-16">MOAT</div>
+    <h2>三个可防御壁垒</h2>
+    <div class="text-lg text-gray mt-8">核心壁垒不是技术，是「法律话术库 + 合规体系 + 行业转化数据模型」的组合</div>
+
+    <div class="flex gap-24 mt-32">
+      <div class="card flex-1" style="border-top:3px solid var(--cyan);">
+        <div class="big-number text-cyan">01</div>
+        <h3 class="mt-12">话术即产品</h3>
+        <div class="bullet mt-16">3套专业话术，每套五环节设计</div>
+        <div class="bullet">不是「附赠说明书」，是独立SKU</div>
+        <div class="bullet">可扩展为「按案由话术库」按量收费</div>
+        <div class="bullet">关键指标：接通>60% / 意向>20% / 加微>50% / 到店>30%</div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--green);">
+        <div class="big-number text-green">02</div>
+        <h3 class="mt-12">合规即交付物</h3>
+        <div class="bullet mt-16">10大类 60+ 合规检查项</div>
+        <div class="bullet">自动生成合规报告+承诺书模板</div>
+        <div class="bullet">销售时直接打消「骚扰投诉」顾虑</div>
+        <div class="bullet">个保法罚款最高5,000万元或营业额5%</div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--purple);">
+        <div class="big-number text-purple">03</div>
+        <h3 class="mt-12">闭环数据模型</h3>
+        <div class="bullet mt-16">接通→意向→微信→到店→委托 五级漏斗</div>
+        <div class="bullet">律所主任首次可量化转化ROI</div>
+        <div class="bullet">数据飞轮：转化越多优化越准</div>
+        <div class="bullet">1个律所月省≥¥10,000（替代1个电销）</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">话术来源：项目文件 docs/SCRIPTS.md（3套完整法律话术）· 合规来源：docs/COMPLIANCE.md（10类60+检查项）· 个人信息保护法第66条</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 5: 反向论证 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-red" style="top:-40px;right:20%;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-red mb-16">DEVIL'S ADVOCATE</div>
+    <h2>假设它会失败</h2>
+    <div class="text-lg text-gray mt-8">任何商业计划都需回答：什么情况下这个事成不了？</div>
+
+    <div class="flex flex-col gap-12 mt-24">
+      <div class="card flex items-center gap-20" style="padding:20px 28px;border-left:4px solid var(--red);">
+        <div style="min-width:60px;"><div style="font-size:10px;color:var(--gray-dim);">假设 1</div><div class="text-red text-xl" style="font-weight:700;">致命</div></div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:15px;">「律所缺案源就愿为工具付费」</div><div class="text-sm text-gray mt-4">有案源焦虑+出得起钱+不抵触技术的律所可能&lt;1,000家。律师天性怀疑一切、精算每笔支出，培育SaaS付费心智需3-5年</div></div>
+      </div>
+      <div class="card flex items-center gap-20" style="padding:20px 28px;border-left:4px solid var(--red);">
+        <div style="min-width:60px;"><div style="font-size:10px;color:var(--gray-dim);">假设 2</div><div class="text-red text-xl" style="font-weight:700;">致命</div></div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:15px;">「外呼这条赛道还在」</div><div class="text-sm text-gray mt-4">手机管家默认拦截。工信部整治趋严。被标记骚扰后接通率&lt;20%。监管和市场在双重绞杀外呼模式</div></div>
+      </div>
+      <div class="card flex items-center gap-20" style="padding:20px 28px;border-left:4px solid var(--red);">
+        <div style="min-width:60px;"><div style="font-size:10px;color:var(--gray-dim);">假设 3</div><div class="text-red text-xl" style="font-weight:700;">致命</div></div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:15px;">「AI打电话转化率 ≥ 人工」</div><div class="text-sm text-gray mt-4">Demo里意向=random.random()随机生成。实测ASR电话信道识别率&lt;70%。TTS机械感让客户秒识破，一旦识破信任归零</div></div>
+      </div>
+      <div class="card flex items-center gap-20" style="padding:20px 28px;border-left:4px solid var(--orange);">
+        <div style="min-width:60px;"><div style="font-size:10px;color:var(--gray-dim);">假设 4</div><div class="text-orange text-xl" style="font-weight:700;">严重</div></div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:15px;">「200客户能盈利」</div><div class="text-sm text-gray mt-4">漏算：语音线路月租¥3-5K、客户成功¥12K、OSS存储¥1-3K、投诉处理不可估。实际成本¥60-70K/月，刚好打平</div></div>
+      </div>
+      <div class="card flex items-center gap-20" style="padding:20px 28px;border-left:4px solid var(--red);">
+        <div style="min-width:60px;"><div style="font-size:10px;color:var(--gray-dim);">假设 5</div><div class="text-red text-xl" style="font-weight:700;">致命</div></div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:15px;">「法律合规风险可控」</div><div class="text-sm text-gray mt-4">一个客户投诉「AI冒充律师」→ 个保法最高5,000万罚款。LLM一句说错就是「非法执业」，不是技术问题，是刑事责任</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">监管来源：工信部《通信短信息服务管理规定》2023修订版 · 个人信息保护法 · Apple/华为手机陌生号码拦截机制公开文档</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 6: 技术真难点 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-cyan" style="top:-50px;left:-50px;"></div>
+  <div class="glow-red" style="bottom:-50px;right:-50px;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-red mb-16">THE REAL PROBLEM</div>
+    <h2>机器人什么时候会暴露？</h2>
+    <div class="text-lg text-gray mt-8">核心命题：客户什么时候发现对面不是人？一旦发现，信任归零</div>
+
+    <div class="flex gap-20 mt-32">
+      <!-- 5 exposure points as timeline cards -->
+      <div class="card flex-1 flex flex-col items-center" style="padding:24px 20px;border-top:3px solid var(--orange);text-align:center;">
+        <div style="font-size:10px;color:var(--gray-dim);letter-spacing:1px;">0-3 秒</div>
+        <div class="text-xl mt-8" style="font-weight:700;">音色不对</div>
+        <div class="tag tag-orange mt-8">中等</div>
+        <div class="text-sm text-gray mt-12" style="line-height:1.5;">TTS韵律、轻声、语流音变仍有差距。但8kHz电话信道反而掩盖部分合成痕迹</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="padding:24px 20px;border-top:3px solid var(--red);text-align:center;">
+        <div style="font-size:10px;color:var(--gray-dim);letter-spacing:1px;">1-3 秒</div>
+        <div class="text-xl mt-8" style="font-weight:700;">延迟异常</div>
+        <div class="tag tag-red mt-8">致命</div>
+        <div class="text-sm text-gray mt-12" style="line-height:1.5;">ASR→LLM→TTS响应与人的200ms自然响应有差距，停顿时长一致性暴露机器</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="padding:24px 20px;border-top:3px solid var(--red);text-align:center;">
+        <div style="font-size:10px;color:var(--gray-dim);letter-spacing:1px;">任意时刻</div>
+        <div class="text-xl mt-8" style="font-weight:700;">打断无法停</div>
+        <div class="tag tag-red mt-8">致命</div>
+        <div class="text-sm text-gray mt-12" style="line-height:1.5;">barge-in 需流式ASR+LLM+TTS联动，当前业界方案整体不成熟</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="padding:24px 20px;border-top:3px solid var(--red);text-align:center;">
+        <div style="font-size:10px;color:var(--gray-dim);letter-spacing:1px;">中段</div>
+        <div class="text-xl mt-8" style="font-weight:700;">情绪错位</div>
+        <div class="tag tag-red mt-8">致命</div>
+        <div class="text-sm text-gray mt-12" style="line-height:1.5;">客户哭了，机器人还是热情腔。法律场景天然高情绪，共情先于内容</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="padding:24px 20px;border-top:3px solid var(--red);text-align:center;">
+        <div style="font-size:10px;color:var(--gray-dim);letter-spacing:1px;">随时</div>
+        <div class="text-xl mt-8" style="font-weight:700;">被直接质问</div>
+        <div class="tag tag-red mt-8">致命</div>
+        <div class="text-sm text-gray mt-12" style="line-height:1.5;">「你是机器人吧？」——撒谎违规，承认报废，两难绝境</div>
+      </div>
+    </div>
+
+    <!-- Bottom insight -->
+    <div class="card mt-24 flex items-center gap-24" style="background:linear-gradient(135deg,#111827,#0A0F18);border:1px solid var(--border);">
+      <div class="big-number text-cyan" style="font-size:36px;">💡</div>
+      <div>
+        <div style="font-weight:600;font-size:16px;">TTS 不是瓶颈，对话感才是</div>
+        <div class="text-sm text-gray mt-4">2025-2026年 CosyVoice 2 / ChatTTS / Fish Audio 的中文韵律已很自然。真正的壁垒是 ASR→LLM→TTS 全链路延迟 + barge-in + 情绪跟随——三个系统工程难题，单个模型解决不了。</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">TTS技术现状：CosyVoice 2 (阿里2024) · ChatTTS (2024开源) · Fish Audio (2025) · 火山引擎语音合成API · ASR：阿里云NLS / 讯飞实时识别 / OpenAI Whisper</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 7: 商业 vs 现实 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-green" style="top:-60px;left:-40px;"></div>
+  <div class="glow-red" style="bottom:-60px;right:-40px;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-green mb-16">UNIT ECONOMICS</div>
+    <h2>乐观 vs 悲观：同一组数据两张脸</h2>
+
+    <div class="flex gap-32 mt-24">
+      <!-- LEFT: Optimistic -->
+      <div class="flex-1 card" style="border-top:3px solid var(--green);">
+        <div class="flex items-center justify-between">
+          <h3 class="text-green">乐观测算</h3>
+          <div class="tag tag-green">如果一切顺利</div>
+        </div>
+        <div class="mt-20"><span class="text-sm text-gray">年收入模型（标准版 ¥3,980/月 + 通话费）</span></div>
+        <div class="flex gap-12 mt-12">
+          <div class="stat-card flex-1"><div class="value text-green">¥199万</div><div class="label">50客户/年</div></div>
+          <div class="stat-card flex-1"><div class="value text-green">¥796万</div><div class="label">200客户/年</div></div>
+          <div class="stat-card flex-1"><div class="value text-green">¥1,989万</div><div class="label">500客户/年</div></div>
+        </div>
+        <div class="mt-16 text-sm text-gray">估值参考：种子期 ¥1,000-3,200万（5-8x ARR）· A轮 ¥5,000万-2亿（6-10x）</div>
+      </div>
+
+      <!-- RIGHT: Pessimistic -->
+      <div class="flex-1 card" style="border-top:3px solid var(--red);">
+        <div class="flex items-center justify-between">
+          <h3 class="text-red">悲观现实</h3>
+          <div class="tag tag-red">被忽略的成本</div>
+        </div>
+        <div class="mt-20"><span class="text-sm text-gray">月度实际成本结构</span></div>
+        <div class="mt-12 flex flex-col gap-6">
+          <div class="flex justify-between text-sm"><span class="text-gray">云服务 (ECS+RDS+Redis)</span><span>¥3,000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">阿里云语音 (ASR+TTS+线路)</span><span class="text-orange">¥20,000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">LLM API (硅基流动)</span><span>¥5,000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">客户成功 1人</span><span class="text-orange">¥12,000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">OSS录音存储 (6月+)</span><span>¥3,000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">研发 1人</span><span>¥15,000</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">投诉处理/法务/合规</span><span class="text-red">不可估</span></div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;" class="flex justify-between text-sm"><span class="text-white" style="font-weight:600;">月总成本</span><span class="text-red text-lg" style="font-weight:700;">¥60-70K</span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray">200客户月收入</span><span>¥66,000</span></div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;" class="flex justify-between"><span class="text-white" style="font-weight:600;">净利润率</span><span class="text-orange text-lg" style="font-weight:700;">≈0-10%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom callout -->
+    <div class="card mt-20" style="background:linear-gradient(135deg,#1A0A0F,#0D1A2A);border:1px solid var(--border);">
+      <div class="flex items-center gap-16">
+        <div style="font-size:32px;">⚠</div>
+        <div style="font-size:16px;font-weight:600;">200客户时刚好打平。「赚钱」建立在所有假设同时成立的前提下</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">价格参考：百应科技/探迹/励销云公开定价 · 阿里云语音服务通话定价页（0.15元/通起）· 云服务器ECS 2核4G月费 · 法律科技行业薪酬报告（2025）</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 8: 市场 vs 监管 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-cyan" style="top:-40px;left:20%;"></div>
+  <div class="glow-red" style="bottom:-40px;right:20%;"></div>
+  <div class="content flex flex-col" style="justify-content:center;height:100%;">
+    <div class="tag tag-red mb-16">EXISTENTIAL THREAT</div>
+    <h2>一个产品不能建立在一个<br>正在被绞杀的通信方式上</h2>
+
+    <div class="flex gap-24 mt-40">
+      <div class="card flex-1 flex flex-col items-center" style="text-align:center;border-top:3px solid var(--red);">
+        <div class="big-number text-red" style="font-size:48px;">&lt;20%</div>
+        <div class="text-sm text-gray mt-8">被标记骚扰后接通率</div>
+        <div class="text-xs text-gray-dim mt-4">手机管家默认拦截陌生号码</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="text-align:center;border-top:3px solid var(--red);">
+        <div class="big-number text-red" style="font-size:48px;">¥5,000万</div>
+        <div class="text-sm text-gray mt-8">个保法单次最高罚款</div>
+        <div class="text-xs text-gray-dim mt-4">或上年营业额 5%，取较高者</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="text-align:center;border-top:3px solid var(--orange);">
+        <div class="big-number text-orange" style="font-size:48px;">¥3,000+</div>
+        <div class="text-sm text-gray mt-8">95号码月租门槛</div>
+        <div class="text-xs text-gray-dim mt-4">中小企业基本申请不下来</div>
+      </div>
+      <div class="card flex-1 flex flex-col items-center" style="text-align:center;border-top:3px solid var(--red);">
+        <div class="big-number text-red" style="font-size:48px;">2023</div>
+        <div class="text-sm text-gray mt-8">商业营销电话整治元年</div>
+        <div class="text-xs text-gray-dim mt-4">未经同意外呼明确违规</div>
+      </div>
+    </div>
+
+    <div class="card mt-32 flex items-center gap-20" style="background:linear-gradient(135deg,#111827,#0A0F18);">
+      <div class="text-cyan" style="font-size:32px;font-weight:700;">?</div>
+      <div>
+        <div style="font-weight:600;font-size:15px;">可能的出路</div>
+        <div class="text-sm text-gray mt-4">从「主动外呼」转向「先微信建联 → 客户同意后再电话」，改变触点发生顺序。但这意味着系统核心要从外呼引擎变为微信对话引擎——本质上就是两个不同的产品方向了。</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">监管来源：工信部《通信短信息服务管理规定》（2023修订）· 个人信息保护法第66条 · Apple iOS / 华为EMUI 拦截机制公开文档 · 阿里云语音服务号码申请条件</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 9: 声学链路成本 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-cyan" style="top:-50px;left:-50px;"></div>
+  <div class="glow-purple" style="bottom:-50px;right:-50px;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-cyan mb-16">VOICE PIPELINE COST</div>
+    <h2>每通电话的真实声学成本</h2>
+    <div class="text-lg text-gray mt-8">前提：模拟人声不易被识破 → 不能用廉价方案</div>
+
+    <div class="flex gap-24 mt-24">
+      <!-- ASR -->
+      <div class="card flex-1" style="border-top:3px solid var(--cyan);">
+        <div style="font-size:24px;">🎤</div>
+        <h3 class="mt-8">ASR 语音识别</h3>
+        <div class="text-xs text-gray mt-4">实时流式，电话信道 8kHz</div>
+        <div class="mt-12 flex flex-col gap-4">
+          <div class="flex justify-between text-sm"><span>阿里云 NLS 实时</span><span class="text-cyan">¥3.5/路时</span></div>
+          <div class="flex justify-between text-sm"><span>讯飞实时（中文最强）</span><span>¥4.0/路时</span></div>
+          <div class="flex justify-between text-sm"><span class="text-red">Whisper 开源</span><span class="text-red">延迟 2-5s ✗</span></div>
+        </div>
+        <div class="stat-card mt-12"><div class="label">每通 2min → 约 ¥0.12</div></div>
+      </div>
+      <!-- LLM -->
+      <div class="card flex-1" style="border-top:3px solid var(--purple);">
+        <div style="font-size:24px;">🧠</div>
+        <h3 class="mt-8">LLM 对话生成</h3>
+        <div class="text-xs text-gray mt-4">上下文理解 + 情绪感知 + 填充词</div>
+        <div class="mt-12 flex flex-col gap-4">
+          <div class="flex justify-between text-sm"><span>DeepSeek V3 API</span><span class="text-purple">¥1/1M in tokens</span></div>
+          <div class="flex justify-between text-sm"><span>Qwen-Max (DashScope)</span><span>¥2/1M tokens</span></div>
+          <div class="flex justify-between text-sm"><span class="text-orange">自部署 Qwen-7B</span><span class="text-orange">需 GPU+微调</span></div>
+        </div>
+        <div class="stat-card mt-12"><div class="label">每通 3 轮对话 → 约 ¥0.002</div></div>
+      </div>
+      <!-- TTS -->
+      <div class="card flex-1" style="border-top:3px solid var(--green);">
+        <div style="font-size:24px;">🔊</div>
+        <h3 class="mt-8">TTS 语音合成</h3>
+        <div class="text-xs text-gray mt-4">韵律、轻声、气息感 — 关键环节</div>
+        <div class="mt-12 flex flex-col gap-4">
+          <div class="flex justify-between text-sm"><span>火山引擎（商业最佳）</span><span class="text-green">¥0.3/千字</span></div>
+          <div class="flex justify-between text-sm"><span>Fish Audio API</span><span>$0.015/千字</span></div>
+          <div class="flex justify-between text-sm"><span class="text-orange">CosyVoice 2 开源</span><span class="text-orange">需 GPU RTX4090</span></div>
+        </div>
+        <div class="stat-card mt-12"><div class="label">每通 3 轮 → 约 ¥0.09</div></div>
+      </div>
+      <!-- Total -->
+      <div class="card flex-1 flex flex-col items-center" style="border-top:3px solid var(--white);text-align:center;background:linear-gradient(135deg,#111827,#0D1A2A);">
+        <div style="font-size:24px;">📊</div>
+        <h3 class="mt-8">每通总成本</h3>
+        <div class="big-number text-cyan mt-8" style="font-size:36px;">¥0.36</div>
+        <div class="text-sm text-gray mt-4">ASR + LLM + TTS + 阿里云外呼</div>
+        <div class="stat-card mt-8">
+          <div class="label">日均 50 通</div>
+          <div class="value text-cyan" style="font-size:28px;">¥540/月</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: API vs Self-hosted -->
+    <div class="flex gap-24 mt-20">
+      <div class="card flex-1" style="border-top:3px solid var(--green);">
+        <div class="flex items-center justify-between">
+          <h3 class="text-green">方案 A：全 API（快速上线）</h3>
+          <div class="tag tag-green">8-10 周</div>
+        </div>
+        <div class="flex gap-12 mt-12">
+          <div class="flex-1"><div class="text-xs text-gray">开发人力</div><div class="text-sm">2 人（1后端+1前端）</div></div>
+          <div class="flex-1"><div class="text-xs text-gray">声音自然度</div><div class="text-sm text-green">7/10</div></div>
+          <div class="flex-1"><div class="text-xs text-gray">延迟</div><div class="text-sm text-orange">1-1.5s</div></div>
+          <div class="flex-1"><div class="text-xs text-gray">barge-in</div><div class="text-sm text-red">基本不支持</div></div>
+        </div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--purple);">
+        <div class="flex items-center justify-between">
+          <h3 class="text-purple">方案 B：自部署核心模型</h3>
+          <div class="tag tag-purple">14-18 周</div>
+        </div>
+        <div class="flex gap-12 mt-12">
+          <div class="flex-1"><div class="text-xs text-gray">开发人力</div><div class="text-sm">3 人（+1算法）</div></div>
+          <div class="flex-1"><div class="text-xs text-gray">声音自然度</div><div class="text-sm text-purple">8.5/10</div></div>
+          <div class="flex-1"><div class="text-xs text-gray">延迟</div><div class="text-sm text-green">0.5-0.8s</div></div>
+          <div class="flex-1"><div class="text-xs text-gray">barge-in</div><div class="text-sm text-green">可做到</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">声学数据来源：阿里云智能语音服务 NLS 定价页 · 火山引擎语音合成 API 文档 · DeepSeek API 定价页 · CosyVoice 2 (2024.10) GitHub项目文档 · Fish Audio API 定价页</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 10: 最低启动投入 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-cyan" style="top:-50px;left:30%;"></div>
+  <div class="glow-red" style="bottom:-50px;right:30%;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-orange mb-16">STARTUP BUDGET</div>
+    <h2>最低启动投入</h2>
+    <div class="text-lg text-gray mt-8">代码由 Claude 完成（0 人力成本），以下是必须花钱的外部资源</div>
+
+    <div class="flex gap-24 mt-24">
+      <!-- Left: External cost (must pay) -->
+      <div class="flex-1 card" style="border-top:3px solid var(--red);">
+        <h3 class="text-red">必须的外部支出</h3>
+        <div class="flex flex-col gap-10 mt-16">
+          <div class="flex justify-between text-sm"><span>GPU 服务器（CosyVoice TTS）3月</span><span class="text-red">¥6,000</span></div>
+          <div class="flex justify-between text-sm"><span>ECS + RDS + Redis 3月</span><span>¥9,000</span></div>
+          <div class="flex justify-between text-sm"><span>阿里云语音服务开通 + 线路</span><span>¥2,000</span></div>
+          <div class="flex justify-between text-sm"><span>外呼号码月租（3月预付）</span><span>¥9,000</span></div>
+          <div class="flex justify-between text-sm"><span>LLM API 预充值</span><span>¥1,000</span></div>
+          <div class="flex justify-between text-sm"><span>ASR API 预充值</span><span>¥1,000</span></div>
+          <div class="flex justify-between text-sm"><span>TTS API 预充值</span><span>¥1,000</span></div>
+          <div class="flex justify-between text-sm"><span>测试话费（1000 通）</span><span>¥360</span></div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;" class="flex justify-between text-sm"><span style="font-weight:600;">外部硬支出</span><span class="text-red text-lg" style="font-weight:700;">¥29,360</span></div>
+        </div>
+        <div class="text-xs text-gray-dim mt-8">* 所有开发由 Claude 完成，开发人力成本 ¥0</div>
+      </div>
+
+      <!-- Right: Time cost -->
+      <div class="flex-1 card" style="border-top:3px solid var(--orange);">
+        <h3 class="text-orange">时间投入（你必须做的）</h3>
+        <div class="flex flex-col gap-10 mt-16">
+          <div class="flex justify-between text-sm"><span>阿里云账号 + 实名 + 开通服务</span><span class="text-orange">半天</span></div>
+          <div class="flex justify-between text-sm"><span>申请外呼号码（需营业执照）</span><span class="text-orange">3-7 天审批</span></div>
+          <div class="flex justify-between text-sm"><span>话术调优（用你的律所经验）</span><span>1-2 天</span></div>
+          <div class="flex justify-between text-sm"><span>10 通真实电话测试 + 听效果</span><span>半天</span></div>
+          <div class="flex justify-between text-sm"><span>找 5 个律所主任听录音给反馈</span><span>1-2 天</span></div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;" class="flex justify-between text-sm"><span style="font-weight:600;">你的总投入</span><span class="text-orange" style="font-weight:700;">约 5-10 个工作日</span></div>
+        </div>
+        <div class="text-xs text-gray-dim mt-8">* 这部分 Claude 无法替代</div>
+      </div>
+    </div>
+
+    <!-- Bottom summary -->
+    <div class="card mt-20 flex items-center gap-20" style="background:linear-gradient(135deg,#0D1A2A,#0A0F18);border:1px solid var(--cyan);border-left:4px solid var(--cyan);">
+      <div class="big-number text-cyan" style="font-size:32px;">3</div>
+      <div>
+        <div style="font-weight:600;font-size:15px;">个月 · ¥3 万 · 你的 5-10 天</div>
+        <div class="text-sm text-gray mt-4">用 Claude 写完整套代码 + 部署，你做阿里云配置 + 话术调优 + 真人测试。对比雇一个团队 3 个月烧 20 万+，这个方案的财务风险几乎为零。</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">服务器价格参考：阿里云 ECS 2核4G · GPU云服务器 A10 / V100 · 阿里云语音服务号码申请费用 · 火山引擎 TTS API 定价 · DeepSeek API 文档</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 11: 产出比 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="glow-green" style="top:-50px;left:-40px;"></div>
+  <div class="glow-red" style="bottom:-50px;right:-40px;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-green mb-16">ROI ANALYSIS</div>
+    <h2>产出比：什么情况下能赚？什么时候会亏？</h2>
+
+    <div class="flex gap-24 mt-24">
+      <!-- Left: Revenue model -->
+      <div class="flex-1 card" style="border-top:3px solid var(--green);">
+        <h3 class="text-green">单客户经济模型</h3>
+        <div class="stat-card mt-12">
+          <div class="flex justify-between items-center"><span class="text-sm">定价（基础版 50通/天）</span><span class="text-lg text-green" style="font-weight:700;">¥2,500/月</span></div>
+          <div class="flex justify-between items-center mt-8"><span class="text-sm">通话 API 成本</span><span class="text-red">- ¥540/月</span></div>
+          <div class="flex justify-between items-center mt-8"><span class="text-sm">服务器均摊</span><span class="text-red">- ¥200/月</span></div>
+          <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;" class="flex justify-between items-center"><span style="font-weight:600;">毛利/客户/月</span><span class="text-green text-lg" style="font-weight:700;">¥1,760</span></div>
+        </div>
+      </div>
+
+      <!-- Right: Payback -->
+      <div class="flex-1 card" style="border-top:3px solid var(--orange);">
+        <h3 class="text-orange">回本时间（启动投入 ¥3 万）</h3>
+        <div class="flex flex-col gap-8 mt-12">
+          <div class="flex justify-between text-sm"><span>3 个客户</span><span class="text-red">17 个月回本</span></div>
+          <div class="flex justify-between text-sm"><span>5 个客户</span><span class="text-orange">5 个月回本</span></div>
+          <div class="flex justify-between text-sm"><span>10 个客户</span><span class="text-green">3 个月回本</span></div>
+          <div class="flex justify-between text-sm"><span>20 个客户</span><span class="text-green">1.5 个月回本</span></div>
+        </div>
+        <div class="text-sm text-gray mt-12">残酷事实：低于 5 个客户就是亏的</div>
+      </div>
+    </div>
+
+    <!-- Scale -->
+    <div class="card mt-20">
+      <h3 class="mb-16">规模化产出（年收入预测）</h3>
+      <div class="flex gap-12">
+        <div class="stat-card flex-1"><div class="value text-red">¥60万</div><div class="label">悲观 · 50客户</div><div class="text-xs text-gray-dim mt-4">净利约 ¥30万/年</div></div>
+        <div class="stat-card flex-1"><div class="value text-orange">¥350万</div><div class="label">中性 · 200客户</div><div class="text-xs text-gray-dim mt-4">净利约 ¥200万/年</div></div>
+        <div class="stat-card flex-1"><div class="value text-green">¥1,200万</div><div class="label">乐观 · 500客户</div><div class="text-xs text-gray-dim mt-4">净利约 ¥800万/年</div></div>
+        <div class="stat-card flex-1"><div class="value text-red">¥0</div><div class="label">如果 2 年内外呼监管全面收紧</div><div class="text-xs text-gray-dim mt-4">投入全损</div></div>
+      </div>
+    </div>
+
+    <!-- Three paths -->
+    <div class="flex gap-20 mt-20">
+      <div class="card flex-1" style="border-top:3px solid var(--gray-dim);">
+        <div class="text-xs text-gray-dim" style="letter-spacing:1px;">路径 A</div>
+        <h3 class="mt-4">全套自建 SaaS</h3>
+        <div class="text-sm text-gray mt-4">启动 ¥3万 · 3 月</div>
+        <div class="text-xs text-red mt-4">风险：高（先建后卖）</div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--orange);">
+        <div class="text-xs text-gray-dim" style="letter-spacing:1px;">路径 B</div>
+        <h3 class="mt-4">阿里云控制台手动拨号</h3>
+        <div class="text-sm text-gray mt-4">启动 ¥2,000 · 1 周</div>
+        <div class="text-xs text-green mt-4">风险：极低</div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--cyan);">
+        <div class="text-xs text-gray-dim" style="letter-spacing:1px;">路径 C（推荐）</div>
+        <h3 class="mt-4">API 拼链路 · 无前端</h3>
+        <div class="text-sm text-gray mt-4">启动 ¥1万 · 2 周</div>
+        <div class="text-xs text-green mt-4">10 通电话验证后决定</div>
+      </div>
+    </div>
+
+    <!-- Key takeaway -->
+    <div class="card mt-16 flex items-center gap-16" style="background:linear-gradient(135deg,#0A0F18,#0D1A2A);border:1px solid var(--cyan);border-left:4px solid var(--cyan);">
+      <div style="font-size:28px;">🎯</div>
+      <div>
+        <div style="font-weight:700;font-size:16px;">最低成本验证路径：¥1 万 + 你的 5 天</div>
+        <div class="text-sm text-gray mt-4">Claude 写一个 200 行 Python 脚本串起 ASR→LLM→TTS→阿里云外呼，导入 10 个号码打出去，录下来听。拿录音问 5 个律所主任「你愿意付多少钱？」—— 让市场告诉你值不值得继续，而不是先烧 3 个月写系统。</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">源数据：阿里云语音服务 API 定价 · GPU 云服务器月租 · 法律科技 SaaS 行业毛利率基准（~60-75%）· 监管趋势：工信部 2023 年商业营销电话整治通告</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 12: 产品状态 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="content flex flex-col" style="justify-content:center;height:100%;">
+    <div class="tag tag-orange mb-16">CURRENT STATUS</div>
+    <h2>构思作品，不是商业项目</h2>
+
+    <div class="flex gap-24 mt-32">
+      <div class="flex-1 flex flex-col gap-16">
+        <div class="flex items-center gap-12"><div style="width:90%;height:8px;background:var(--green);border-radius:4px;"></div><span class="text-sm text-gray">想法阶段 80%</span></div>
+        <div class="flex items-center gap-12"><div style="width:60%;height:8px;background:var(--cyan);border-radius:4px;"></div><span class="text-sm text-gray">技术验证 60%</span></div>
+        <div class="flex items-center gap-12"><div style="width:30%;height:8px;background:var(--orange);border-radius:4px;"></div><span class="text-sm text-gray">产品可用 30%</span></div>
+        <div class="flex items-center gap-12"><div style="width:0%;height:8px;background:var(--red);border-radius:4px;"></div><span class="text-sm text-red">商业验证 0%</span></div>
+      </div>
+      <div class="flex-1 card" style="background:linear-gradient(135deg,#111827,#0A0F18);">
+        <div style="font-weight:600;font-size:15px;" class="text-red">Demo 到生产的鸿沟</div>
+        <div class="bullet mt-12">Python Tkinter demo 里，意向=random.random()</div>
+        <div class="bullet">真实 ASR 在电话信道识别率 &lt;70%</div>
+        <div class="bullet">TTS 机械感 → 客户秒识破 → 信任归零</div>
+        <div class="bullet">中间隔着声学模型、噪声抑制、打断检测、情绪识别</div>
+      </div>
+    </div>
+
+    <div class="card mt-24 flex items-center gap-20" style="background:linear-gradient(135deg,#1A0A0F,#0D1A2A);border:1px solid var(--border);">
+      <div class="big-number text-red" style="font-size:36px;">0</div>
+      <div>
+        <div style="font-weight:600;">0 个付费客户。0 条真实转化数据。0 通生产环境实际外呼。</div>
+        <div class="text-sm text-gray mt-4">没有验证过的商业机会，只是一个有行业认知的构想。</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">方法论参考：Steve Blank《The Four Steps to the Epiphany》客户开发模型 · Y Combinator 「Do Things That Don't Scale」原则</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 13: 验证路径 ═══════════════════ -->
+<div class="slide">
+  <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="glow-cyan" style="top:-60px;right:30%;"></div>
+  <div class="glow-green" style="bottom:-60px;left:30%;"></div>
+  <div class="content flex flex-col">
+    <div class="tag tag-cyan mb-16">NEXT STEPS</div>
+    <h2>先验证最危险的假设</h2>
+    <div class="text-lg text-gray mt-8">不是写更多代码，而是打一通实际电话</div>
+
+    <div class="flex gap-24 mt-32">
+      <div class="card flex-1" style="border-top:3px solid var(--cyan);">
+        <div class="text-cyan" style="font-size:12px;font-weight:700;letter-spacing:1px;">阶段 1 · 1-2 周</div>
+        <h3 class="mt-8">打通第一通实际电话</h3>
+        <div class="bullet mt-16">配置阿里云语音服务 + 硅基流动LLM</div>
+        <div class="bullet">10个真实号码跑一轮 → 录下来听</div>
+        <div class="bullet">判断标准：AI主导2分钟+对话，客户未察觉</div>
+        <div class="mt-16 stat-card">
+          <div class="value text-cyan" style="font-size:28px;">目标：1 通有效对话</div>
+          <div class="label">ASR → LLM → TTS 全链路跑通</div>
+        </div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--green);">
+        <div class="text-green" style="font-size:12px;font-weight:700;letter-spacing:1px;">阶段 2 · 2-3 周</div>
+        <h3 class="mt-8">种子客户真实测试</h3>
+        <div class="bullet mt-16">对接1家关系律所，用真实客户名单</div>
+        <div class="bullet">收集四率：接通/意向/加微/到店</div>
+        <div class="bullet">拿数据问5个主任：「这个效果，你愿付多少钱？」</div>
+        <div class="mt-16 stat-card">
+          <div class="value text-green" style="font-size:28px;">目标：≥3 个付费意向</div>
+          <div class="label">给出明确金额且覆盖成本</div>
+        </div>
+      </div>
+      <div class="card flex-1" style="border-top:3px solid var(--purple);">
+        <div class="text-purple" style="font-size:12px;font-weight:700;letter-spacing:1px;">阶段 3 · 3-4 周</div>
+        <h3 class="mt-8">最小产品上线</h3>
+        <div class="bullet mt-16">只做三页：客户导入 → 外呼任务 → 通话记录</div>
+        <div class="bullet">不做多租户、不做复杂报表</div>
+        <div class="bullet">先卖出去，哪怕只收 ¥500/月</div>
+        <div class="mt-16 stat-card">
+          <div class="value text-purple" style="font-size:28px;">目标：1 个付费客户</div>
+          <div class="label">哪怕只收 ¥500，也是商业验证</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom rule -->
+    <div class="card mt-24 flex items-center gap-16" style="background:linear-gradient(135deg,#0A0F18,#0D1A2A);border:1px solid var(--cyan);border-left:4px solid var(--cyan);">
+      <div style="font-size:28px;">🎯</div>
+      <div>
+        <div style="font-weight:700;font-size:16px;">最后一步不是写更多代码</div>
+        <div class="text-sm text-gray mt-4">用阿里云语音服务打一通实际电话，录下来听效果。这比任何商业计划书都有说服力。</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-note">验证方法论：Steve Blank《The Four Steps to the Epiphany》· Y Combinator 「Do Things That Don\'t Scale」 · 阿里云语音服务开发者文档</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 14: 总结 ═══════════════════ -->
+<div class="slide">
+  <div class="glow-cyan" style="top:-100px;right:-100px;"></div>
+  <div class="glow-purple" style="bottom:-80px;left:-80px;"></div>
+  <div class="content flex flex-col" style="justify-content:center;height:100%;">
+    <div class="text-cyan text-sm mb-8" style="font-weight:600;letter-spacing:2px;">CONCLUSION</div>
+    <h1 style="font-size:52px;">方向对 · 骨架对<br><span class="text-red">验证缺口大</span></h1>
+
+    <div class="flex gap-32 mt-40">
+      <div class="flex-1">
+        <div style="font-size:14px;font-weight:600;" class="text-green mb-12">✓ 成立的部分</div>
+        <div class="bullet">选对了痛点：案源是律所第一焦虑</div>
+        <div class="bullet">打对了差异化：空白地带确实存在</div>
+        <div class="bullet">算得过账：替代一个电销的ROI清晰</div>
+        <div class="bullet">合规做成卖点而非成本</div>
+      </div>
+      <div class="flex-1">
+        <div style="font-size:14px;font-weight:600;" class="text-red mb-12">✗ 不成立的风险</div>
+        <div class="bullet">外呼赛道在塌方（监管+拦截双重绞杀）</div>
+        <div class="bullet">律所SaaS付费心智可能需3-5年培育</div>
+        <div class="bullet">AI对话体验在生产环境未经任何验证</div>
+        <div class="bullet">200客户才刚打平，天花板很低</div>
+      </div>
+    </div>
+
+    <div class="mt-40 text-sm text-gray" style="line-height:1.8;">
+      <span class="text-cyan" style="font-weight:600;">最后一句话：</span>
+      技术上 85% 完成了，但「完成度」和「可用性」之间隔着一通真实电话。<br>
+      Demo 里意向是 random.random() 随机生成的，不是 ASR 从客户语音里转出来的。<br>
+      验证是否值得继续的唯一方式：<span class="text-white" style="font-weight:600;">打通一通实际电话，录下来听。这比任何商业计划书都有说服力。</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

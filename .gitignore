@@ -1,0 +1,41 @@
+# 密钥和敏感配置 —— 绝不提交
+钥匙.md
+钥匙.docx
+.env
+.env.local
+*.pem
+*.key
+credentials.*
+secrets.*
+
+# 依赖
+node_modules/
+.venv/
+venv/
+
+# 构建产物
+dist/
+build/
+*.js.map
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 办公文档（与代码无关）
+*.pptx
+*.docx
+*.pdf
+
+# 数据库文件
+*.db
+*.sqlite
+
+# 备份文件
+*.bak

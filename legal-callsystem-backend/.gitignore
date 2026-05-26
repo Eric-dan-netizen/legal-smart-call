@@ -1,0 +1,35 @@
+# 依赖
+node_modules/
+dist/
+.pnp
+.pnp.js
+
+# 测试
+coverage/
+
+# 生产
+*.log
+
+# 环境
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 临时
+tmp/
+temp/
+*.tmp
+
+# 上传
+uploads/
+recordings/
