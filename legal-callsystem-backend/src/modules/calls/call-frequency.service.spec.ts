@@ -15,6 +15,8 @@ describe('CallFrequencyService', () => {
     create: jest.fn(),
     save: jest.fn(),
     delete: jest.fn(),
+    increment: jest.fn(),
+    update: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
 
@@ -61,17 +63,15 @@ describe('CallFrequencyService', () => {
     });
 
     it('should block call outside allowed hours', async () => {
-      const hour = new Date().getHours();
-      if (hour >= 8 && hour < 21) {
-        // Can't test time window right now, skip
-        return;
-      }
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-05-27T03:00:00'));
       mockRepo.findOne.mockResolvedValue(null);
 
       const result = await service.canCall('t1', '13800000001');
 
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('8:00-21:00');
+      jest.useRealTimers();
     });
 
     it('should isolate tenants — same phone, different tenants', async () => {
@@ -88,24 +88,25 @@ describe('CallFrequencyService', () => {
 
   describe('recordCall', () => {
     it('should create new record on first call', async () => {
-      mockRepo.findOne.mockResolvedValue(null);
+      mockRepo.increment.mockResolvedValue({ affected: 0 });
       mockRepo.create.mockReturnValue({});
       mockRepo.save.mockResolvedValue({});
 
       await service.recordCall('t1', '13800000001');
 
+      expect(mockRepo.increment).toHaveBeenCalled();
       expect(mockRepo.create).toHaveBeenCalled();
       expect(mockRepo.save).toHaveBeenCalled();
     });
 
     it('should increment existing record', async () => {
-      mockRepo.findOne.mockResolvedValue({ callCount: 1, lastCallAt: null } as any);
-      mockRepo.save.mockResolvedValue({});
+      mockRepo.increment.mockResolvedValue({ affected: 1 });
+      mockRepo.update.mockResolvedValue({});
 
       await service.recordCall('t1', '13800000001');
 
-      const saved = mockRepo.save.mock.calls[0][0];
-      expect(saved.callCount).toBe(2);
+      expect(mockRepo.increment).toHaveBeenCalled();
+      expect(mockRepo.update).toHaveBeenCalled();
     });
   });
 

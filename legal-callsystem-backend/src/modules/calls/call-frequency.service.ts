@@ -65,15 +65,14 @@ export class CallFrequencyService {
     const { year, weekNumber } = this.getWeekInfo();
     const phoneHash = this.hashPhone(phone);
 
-    let record = await this.frequencyRepo.findOne({
-      where: { tenantId, phoneHash, year, weekNumber } as any,
-    });
+    const result = await this.frequencyRepo.increment(
+      { tenantId, phoneHash, year, weekNumber } as any,
+      'callCount',
+      1,
+    );
 
-    if (record) {
-      record.callCount += 1;
-      record.lastCallAt = new Date();
-    } else {
-      record = this.frequencyRepo.create({
+    if (result.affected === 0) {
+      const record = this.frequencyRepo.create({
         tenantId,
         phoneHash,
         year,
@@ -81,9 +80,13 @@ export class CallFrequencyService {
         callCount: 1,
         lastCallAt: new Date(),
       });
+      await this.frequencyRepo.save(record);
+    } else {
+      await this.frequencyRepo.update(
+        { tenantId, phoneHash, year, weekNumber } as any,
+        { lastCallAt: new Date() },
+      );
     }
-
-    await this.frequencyRepo.save(record);
   }
 
   async getHistory(tenantId: string, phone: string) {
