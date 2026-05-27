@@ -35,6 +35,15 @@ describe('CallFrequencyService', () => {
   afterEach(() => jest.clearAllMocks());
 
   describe('canCall', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-05-27T10:00:00'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should allow call within limits', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
@@ -63,7 +72,6 @@ describe('CallFrequencyService', () => {
     });
 
     it('should block call outside allowed hours', async () => {
-      jest.useFakeTimers();
       jest.setSystemTime(new Date('2026-05-27T03:00:00'));
       mockRepo.findOne.mockResolvedValue(null);
 
@@ -71,7 +79,6 @@ describe('CallFrequencyService', () => {
 
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('8:00-21:00');
-      jest.useRealTimers();
     });
 
     it('should isolate tenants — same phone, different tenants', async () => {

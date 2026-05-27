@@ -2,11 +2,9 @@ import { Controller, Post, Body, HttpCode, HttpStatus, Logger, UseInterceptors, 
 import { FileInterceptor } from '@nestjs/platform-express';
 import { VoiceGatewayService } from './voice-gateway.service';
 import { LlmService } from './llm.service';
+import { AsrService } from './asr.service';
+import { TtsService } from './tts.service';
 
-/**
- * 语音对话控制器
- * 提供 HTTP 接口用于测试
- */
 @Controller('voice')
 export class VoiceController {
   private readonly logger = new Logger(VoiceController.name);
@@ -14,6 +12,8 @@ export class VoiceController {
   constructor(
     private readonly voiceGateway: VoiceGatewayService,
     private readonly llmService: LlmService,
+    private readonly asrService: AsrService,
+    private readonly ttsService: TtsService,
   ) {}
 
   /**
@@ -102,11 +102,40 @@ export class VoiceController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('audio'))
   async chatWithAudio(@Body() body: any, @UploadedFile() audio: any) {
-    return {
-      success: true,
-      message: '音频处理需要配置 ASR 服务',
-      data: {},
-    };
+    if (!audio) {
+      return { success: false, message: '请上传音频文件 (字段名: audio)' };
+    }
+
+    try {
+      const asrResult = await this.asrService.recognize(audio.buffer);
+
+      const sessionId = body.sessionId
+        || await this.voiceGateway.startConversation(body.customerId || 'audio-user', body.tenantId || 'test-tenant');
+      const history = this.voiceGateway.getHistory(sessionId);
+      history.push({ role: 'user', content: asrResult.text });
+
+      const aiReply = await this.llmService.chat({
+        messages: history,
+        tenantId: body.tenantId || 'test-tenant',
+      });
+      history.push({ role: 'assistant', content: aiReply });
+
+      const audioPath = await this.ttsService.synthesize(aiReply);
+
+      return {
+        success: true,
+        data: {
+          sessionId,
+          userText: asrResult.text,
+          aiReply,
+          audioPath,
+          confidence: asrResult.confidence,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`音频对话失败: ${error.message}`);
+      return { success: false, message: error.message };
+    }
   }
 
   /**

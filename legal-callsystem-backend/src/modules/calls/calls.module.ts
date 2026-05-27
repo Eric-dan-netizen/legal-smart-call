@@ -13,6 +13,7 @@ import { CallsService } from './calls.service';
 import { BlacklistService } from './blacklist.service';
 import { CallFrequencyService } from './call-frequency.service';
 import { AliyunCallService, TencentCallService } from './aliyun-call.service';
+import { AliyunSignatureService } from '../common/aliyun-signature.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { AliyunCallService, TencentCallService } from './aliyun-call.service';
     ConfigModule,
   ],
   controllers: [CallsController, BlacklistController, FrequencyController],
-  providers: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService, TencentCallService],
+  providers: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService, TencentCallService, AliyunSignatureService],
   exports: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService],
 })
 export class CallsModule {}

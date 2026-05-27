@@ -1,88 +1,132 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as https from 'https';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
+import { AliyunSignatureService } from '../common/aliyun-signature.service';
 
 export interface AsrResult {
-  text: string;           // 识别的文字
-  confidence: number;     // 置信度 0-1
-  duration: number;       // 音频时长(秒)
+  text: string;
+  confidence: number;
+  duration: number;
 }
 
-/**
- * ASR 语音识别服务
- * 支持：阿里云、讯飞
- */
 @Injectable()
 export class AsrService {
   private readonly logger = new Logger(AsrService.name);
   private readonly provider: string;
-  private readonly appId: string;
-  private readonly apiKey: string;
+  private readonly appKey: string;
+  private readonly endpoint = 'https://nls-meta.cn-shanghai.aliyuncs.com';
 
-  constructor() {
-    this.provider = process.env.ASR_PROVIDER || 'aliyun';
-    this.appId = process.env.ASR_APP_ID || '';
-    this.apiKey = process.env.ASR_API_KEY || '';
+  constructor(
+    private configService: ConfigService,
+    private signService: AliyunSignatureService,
+  ) {
+    this.provider = this.configService.get<string>('ASR_PROVIDER', 'aliyun');
+    this.appKey = this.configService.get<string>('NLS_APP_KEY', '');
   }
 
-  /**
-   * 识别音频buffer
-   */
   async recognize(audioBuffer: Buffer): Promise<AsrResult> {
     if (this.provider === 'aliyun') {
       return this.aliyunRecognize(audioBuffer);
-    } else if (this.provider === 'iflytek') {
-      return this.iflytekRecognize(audioBuffer);
-    } else {
-      throw new Error(`不支持的 ASR 服务商: ${this.provider}`);
+    }
+    throw new Error(`不支持的 ASR 服务商: ${this.provider}`);
+  }
+
+  /**
+   * 阿里云 NLS 一句话识别
+   * 文档: https://help.aliyun.com/zh/nls/sentence-recognizer
+   */
+  private async aliyunRecognize(audioBuffer: Buffer): Promise<AsrResult> {
+    if (!this.appKey) {
+      throw new Error('NLS_APP_KEY 未配置，无法使用阿里云语音识别');
+    }
+
+    this.logger.log(`阿里云 NLS 识别，音频大小: ${audioBuffer.length} bytes`);
+
+    try {
+      // Token-based auth for NLS REST API
+      const token = await this.getNlsToken();
+      const url = `https://nls-gateway.cn-shanghai.aliyuncs.com/stream/v1/SentenceRecognizer`;
+      const params = new URLSearchParams({
+        appkey: this.appKey,
+        format: 'pcm',
+        sample_rate: '16000',
+        enable_punctuation_prediction: 'true',
+        enable_inverse_text_normalization: 'true',
+      });
+
+      const response = await axios.post(`${url}?${params.toString()}`, audioBuffer, {
+        headers: {
+          'X-NLS-Token': token,
+          'Content-Type': 'application/octet-stream',
+        },
+        timeout: 15000,
+        responseType: 'json',
+      });
+
+      const data = response.data;
+      if (data.status !== 200) {
+        throw new Error(`NLS 识别失败: ${data.error_msg || data.status}`);
+      }
+
+      const text = data.result || '';
+      this.logger.log(`NLS 识别结果: ${text}`);
+
+      return {
+        text,
+        confidence: data.confidence || 0.9,
+        duration: audioBuffer.length / 32000, // 16kHz 16bit mono = 32000 bytes/s
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('NLS')) {
+        throw error;
+      }
+      this.logger.error(`NLS 识别失败: ${error.message}`);
+      throw new Error(`ASR 识别失败: ${error.message}`);
     }
   }
 
   /**
-   * 阿里云 ASR 实时语音识别
-   * 文档：https://help.aliyun.com/product/30413.html
+   * 获取 NLS Token（HMAC-SHA1 签名）
    */
-  private async aliyunRecognize(audioBuffer: Buffer): Promise<AsrResult> {
-    // 实际需使用阿里云 NLS SDK
-    // 这里模拟返回
-    this.logger.log('阿里云 ASR 识别中...');
-
-    // 模拟识别结果
-    // 实际需要调用阿里云实时语音识别 API
-    return {
-      text: '我想咨询一下离婚案件',
-      confidence: 0.95,
-      duration: 3,
+  private async getNlsToken(): Promise<string> {
+    const params: Record<string, any> = {
+      Action: 'CreateToken',
+      Version: '2019-08-23',
+      RegionId: 'cn-shanghai',
     };
+
+    const signedQuery = this.signService.buildSignedQuery(params, 'POST');
+    const url = `${this.endpoint}/pop/2018-05-18/token`;
+
+    try {
+      const response = await axios.post(url, null, {
+        params: new URLSearchParams(signedQuery),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 10000,
+      });
+
+      if (response.data.Token?.Id) {
+        return response.data.Token.Id;
+      }
+      throw new Error(`获取 NLS Token 失败: ${JSON.stringify(response.data)}`);
+    } catch (error) {
+      this.logger.error(`获取 NLS Token 失败: ${error.message}`);
+      throw error;
+    }
   }
 
-  /**
-   * 讯飞 ASR 识别
-   */
-  private async iflytekRecognize(audioBuffer: Buffer): Promise<AsrResult> {
-    this.logger.log('讯飞 ASR 识别中...');
-    
-    // 讯飞实时语音识别 API
-    // 需要使用讯飞 WebSocket SDK
-    return {
-      text: '',
-      confidence: 0.9,
-      duration: 0,
-    };
-  }
-
-  /**
-   * 短语音识别（文件上传方式）
-   * 适用于 < 60s 音频
-   */
   async recognizeFile(audioUrl: string): Promise<AsrResult> {
     this.logger.log(`识别音频文件: ${audioUrl}`);
-    
-    // 下载音频文件
-    // 调用 ASR API
-    return {
-      text: '喂，你好',
-      confidence: 0.92,
-      duration: 2,
-    };
+
+    try {
+      const response = await axios.get(audioUrl, {
+        responseType: 'arraybuffer',
+        timeout: 30000,
+      });
+      return this.recognize(Buffer.from(response.data));
+    } catch (error) {
+      this.logger.error(`下载音频文件失败: ${error.message}`);
+      throw new Error(`无法获取音频文件: ${error.message}`);
+    }
   }
 }

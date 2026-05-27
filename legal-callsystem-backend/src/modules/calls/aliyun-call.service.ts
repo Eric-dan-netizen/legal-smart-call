@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as CryptoJS from 'crypto-js';
+import { AliyunSignatureService } from '../common/aliyun-signature.service';
 
 /**
  * 阿里云语音服务对接
@@ -26,7 +26,10 @@ export class AliyunCallService {
   private readonly apiEndpoint = 'https://dyvmsapi.aliyuncs.com/';
   private readonly apiVersion = '2017-05-25';
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private signService: AliyunSignatureService,
+  ) {
     this.accessKeyId = this.configService.get<string>('ALIYUN_ACCESS_KEY_ID') || '';
     this.accessKeySecret = this.configService.get<string>('ALIYUN_ACCESS_KEY_SECRET') || '';
     this.appKey = this.configService.get<string>('ALIYUN_CALL_APP_KEY') || '';
@@ -60,29 +63,16 @@ export class AliyunCallService {
     const params: Record<string, any> = {
       Action: 'DoublePlay',
       Version: this.apiVersion,
-      Format: 'JSON',
-      AccessKeyId: this.accessKeyId,
-      SignMethod: 'HMAC-SHA1',
-      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-      SignatureMethod: 'HMAC-SHA1',
-      SignatureVersion: '1.0',
-      SignatureNonce: this.generateNonce(),
       RegionId: 'cn-hangzhou',
-      
-      // 业务参数
-      CalledShowNumber: this.callNumber, // 外显号码
-      CalledNumber: calledNumber,        // 被叫号码（客户）
-      AgentNumber: agentNumber,          // 坐席号码
-      OutId: outId,                      // 业务订单 ID
+      CalledShowNumber: this.callNumber,
+      CalledNumber: calledNumber,
+      AgentNumber: agentNumber,
+      OutId: outId,
     };
 
-    // 如果有话术 ID，添加 TTS 参数
     if (scriptId) {
       params.PlayId = scriptId;
     }
-
-    // 生成签名
-    params.Signature = this.generateSignature(params);
 
     try {
       this.logger.log(`发起外呼：${calledNumber} (客户) <- ${agentNumber} (坐席), OutId: ${outId}`);
@@ -118,21 +108,10 @@ export class AliyunCallService {
     const params: Record<string, any> = {
       Action: 'QueryCallDetail',
       Version: this.apiVersion,
-      Format: 'JSON',
-      AccessKeyId: this.accessKeyId,
-      SignMethod: 'HMAC-SHA1',
-      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-      SignatureMethod: 'HMAC-SHA1',
-      SignatureVersion: '1.0',
-      SignatureNonce: this.generateNonce(),
       RegionId: 'cn-hangzhou',
-      
-      // 业务参数
       QueryId: callId,
       Date: queryDate,
     };
-
-    params.Signature = this.generateSignature(params);
 
     try {
       const response = await this.callApi(params);
@@ -164,21 +143,10 @@ export class AliyunCallService {
     const params: Record<string, any> = {
       Action: 'GetRecordingDownloadLink',
       Version: this.apiVersion,
-      Format: 'JSON',
-      AccessKeyId: this.accessKeyId,
-      SignMethod: 'HMAC-SHA1',
-      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-      SignatureMethod: 'HMAC-SHA1',
-      SignatureVersion: '1.0',
-      SignatureNonce: this.generateNonce(),
       RegionId: 'cn-hangzhou',
-      
-      // 业务参数
       QueryId: callId,
       Date: queryDate,
     };
-
-    params.Signature = this.generateSignature(params);
 
     try {
       const response = await this.callApi(params);
@@ -200,27 +168,20 @@ export class AliyunCallService {
    */
   private async callApi(params: Record<string, any>): Promise<any> {
     const { default: axios } = await import('axios');
-    
-    const queryString = Object.keys(params)
-      .sort()
-      .map(key => `${this.percentEncode(key)}=${this.percentEncode(params[key])}`)
-      .join('&');
-    
-    const url = `${this.apiEndpoint}?${queryString}`;
+
+    const signedQuery = this.signService.buildSignedQuery(params, 'GET');
+    const url = `${this.apiEndpoint}?${signedQuery}`;
 
     try {
       const response = await axios.get(url, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         timeout: 10000,
       });
 
       if (response.data.Code === 'OK' || response.data.Code === 'ok') {
         return response.data;
-      } else {
-        throw new Error(`阿里云 API 错误：${response.data.Message || response.data.Code}`);
       }
+      throw new Error(`阿里云 API 错误：${response.data.Message || response.data.Code}`);
     } catch (error) {
       if (error.response?.data) {
         throw new Error(`阿里云 API 错误：${error.response.data.Message || error.response.data.Code}`);
@@ -232,36 +193,6 @@ export class AliyunCallService {
   /**
    * 生成签名
    */
-  private generateSignature(params: Record<string, any>): string {
-    const sortedParams = Object.keys(params)
-      .sort()
-      .map(key => `${this.percentEncode(key)}=${this.percentEncode(params[key])}`)
-      .join('&');
-    
-    const stringToSign = `GET&${this.percentEncode('/')}&${this.percentEncode(sortedParams)}`;
-    const signature = CryptoJS.HmacSHA1(stringToSign, `${this.accessKeySecret}&`)
-      .toString(CryptoJS.enc.Base64);
-    
-    return signature;
-  }
-
-  /**
-   * URL 编码
-   */
-  private percentEncode(str: string): string {
-    return encodeURIComponent(str)
-      .replace(/\+/g, '%20')
-      .replace(/\*/g, '%2A')
-      .replace(/%7E/g, '~');
-  }
-
-  /**
-   * 生成随机 SignatureNonce
-   */
-  private generateNonce(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-  }
-
   /**
    * 解析通话状态
    */
