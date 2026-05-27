@@ -177,7 +177,7 @@ export class TtsService {
   private async getNlsToken(): Promise<string> {
     const params: Record<string, any> = {
       Action: 'CreateToken',
-      Version: '2019-08-23',
+      Version: '2019-02-28',
       RegionId: 'cn-shanghai',
     };
 

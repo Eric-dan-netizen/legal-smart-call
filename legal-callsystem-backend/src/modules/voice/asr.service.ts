@@ -45,7 +45,7 @@ export class AsrService {
     try {
       // Token-based auth for NLS REST API
       const token = await this.getNlsToken();
-      const url = `https://nls-gateway.cn-shanghai.aliyuncs.com/stream/v1/SentenceRecognizer`;
+      const url = `https://nls-gateway.cn-shanghai.aliyuncs.com/stream/v1/asr`;
       const params = new URLSearchParams({
         appkey: this.appKey,
         format: 'pcm',
@@ -91,7 +91,7 @@ export class AsrService {
   private async getNlsToken(): Promise<string> {
     const params: Record<string, any> = {
       Action: 'CreateToken',
-      Version: '2019-08-23',
+      Version: '2019-02-28',
       RegionId: 'cn-shanghai',
     };
 
