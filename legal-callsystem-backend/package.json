@@ -6,6 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "postinstall": "xattr -d com.apple.quarantine node_modules/fsevents/fsevents.node 2>/dev/null || true",
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
