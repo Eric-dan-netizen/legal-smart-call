@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — TS compile + Jest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: legal-callsystem-backend
+
+    strategy:
+      matrix:
+        node-version: [20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: legal-callsystem-backend/package-lock.json
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx jest --no-coverage --verbose --forceExit
