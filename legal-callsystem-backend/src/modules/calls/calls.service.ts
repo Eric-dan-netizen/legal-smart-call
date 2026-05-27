@@ -7,6 +7,8 @@ import { CallLog } from './call-log.entity';
 import { Customer } from '../customers/customer.entity';
 import { Tenant } from '../tenants/tenant.entity';
 import { AliyunCallService } from './aliyun-call.service';
+import { BlacklistService } from './blacklist.service';
+import { CallFrequencyService } from './call-frequency.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as CryptoJS from 'crypto-js';
 
@@ -23,6 +25,8 @@ export class CallsService {
     private customerRepo: Repository<Customer>,
     private configService: ConfigService,
     private aliyunCallService: AliyunCallService,
+    private blacklistService: BlacklistService,
+    private frequencyService: CallFrequencyService,
   ) {}
 
   async createTask(tenantId: string, data: CreateTaskDto) {
@@ -138,18 +142,24 @@ export class CallsService {
       return { success: false, error: '手机号解密失败' };
     }
 
+    // 1. 黑名单检查
+    const isBlacklisted = await this.blacklistService.isBlacklisted(customer.tenantId, phone);
+    if (isBlacklisted) {
+      this.logger.warn(`客户 ${customerId} 在黑名单中，跳过外呼`);
+      return { success: false, error: '客户已退订（黑名单）' };
+    }
+
+    // 2. 频率限制检查
+    const frequencyCheck = await this.frequencyService.canCall(customer.tenantId, phone);
+    if (!frequencyCheck.allowed) {
+      this.logger.warn(`客户 ${customerId} 频率限制：${frequencyCheck.reason}`);
+      return { success: false, error: frequencyCheck.reason };
+    }
+
     const agentNumber = this.configService.get<string>('AGENT_NUMBER');
     if (!agentNumber) {
       this.logger.error('坐席号码未配置，请在环境变量中设置 AGENT_NUMBER');
       return { success: false, error: '坐席号码未配置，请在环境变量 AGENT_NUMBER 中设置' };
-    }
-
-    // 检查外呼时间（8:00-21:00）
-    const now = new Date();
-    const hour = now.getHours();
-    if (hour < 8 || hour >= 21) {
-      this.logger.warn(`当前时间 ${hour} 点不在允许外呼时间范围内（8:00-21:00）`);
-      return { success: false, error: '不在允许外呼时间范围内' };
     }
 
     this.logger.log(`发起外呼：客户 ${phone} <- 坐席 ${agentNumber}`);
@@ -173,6 +183,9 @@ export class CallsService {
       
       await this.logRepo.save(log);
       await this.taskRepo.increment({ id: task.id }, 'completedCount', 1);
+
+      // 记录外呼频率
+      await this.frequencyService.recordCall(customer.tenantId, phone);
 
       this.logger.log(`外呼成功：callId=${callResult.callId}, status=${callResult.status}`);
       

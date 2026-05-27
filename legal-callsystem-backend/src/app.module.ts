@@ -19,6 +19,8 @@ import { User } from './modules/auth/user.entity';
 import { Customer } from './modules/customers/customer.entity';
 import { CallTask } from './modules/calls/call-task.entity';
 import { CallLog } from './modules/calls/call-log.entity';
+import { Blacklist } from './modules/calls/blacklist.entity';
+import { CallFrequency } from './modules/calls/call-frequency.entity';
 import { Script } from './modules/scripts/script.entity';
 import { WechatSession } from './modules/wechat/wechat-session.entity';
 
@@ -40,7 +42,7 @@ import { WechatSession } from './modules/wechat/wechat-session.entity';
           return {
             type: 'better-sqlite3',
             database: configService.get('DB_SQLITE_PATH', ':memory:'),
-            entities: [Tenant, User, Customer, CallTask, CallLog, Script, WechatSession],
+            entities: [Tenant, User, Customer, CallTask, CallLog, Blacklist, CallFrequency, Script, WechatSession],
             synchronize: true,
             logging: process.env.NODE_ENV === 'development',
           };
@@ -54,7 +56,7 @@ import { WechatSession } from './modules/wechat/wechat-session.entity';
           username: configService.get('DB_USER', 'postgres'),
           password: configService.get('DB_PASSWORD'),
           database: configService.get('DB_NAME', 'legal_call_db'),
-          entities: [Tenant, User, Customer, CallTask, CallLog, Script, WechatSession],
+          entities: [Tenant, User, Customer, CallTask, CallLog, Blacklist, CallFrequency, Script, WechatSession],
           synchronize: process.env.NODE_ENV === 'development',
           logging: process.env.NODE_ENV === 'development',
         };
