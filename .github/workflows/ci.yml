@@ -27,6 +27,6 @@ jobs:
           cache: npm
           cache-dependency-path: legal-callsystem-backend/package-lock.json
 
-      - run: npm ci
+      - run: npm install
       - run: npx tsc --noEmit
       - run: npx jest --no-coverage --verbose --forceExit
