@@ -168,3 +168,39 @@ claude --claude-md .claude/roles/business-model-discussion.md  # 商业模式讨
 - 阿里云 ECS: `47.113.190.38` SSH 端口 2222
 - OpenAI/LLM API: 见 `钥匙.md`
 - **安全红线：以上密钥不得提交到 git、不得在对话外转发**
+
+## 服务器安全部署规范（强制执行）
+
+2026-05-28 阿里云 ECS 因 PostgreSQL 5432 端口暴露公网 + 弱密码被入侵部署挖矿病毒。以下规则写入项目铁律，**任何开发/部署操作不得违反**。
+
+### 端口暴露红线
+
+| 规则 | 说明 |
+|------|------|
+| **数据库端口禁止公网暴露** | PostgreSQL(5432)、MySQL(3306)、Redis(6379)、MongoDB(27017) 必须 bind `127.0.0.1`，不得监听 `0.0.0.0` |
+| **防火墙默认拒绝** | 仅开放必要端口（SSH、HTTP/HTTPS），其余一律 DROP |
+| **开发期也不例外** | 不要为了调试方便把数据库暴露到公网——用 SSH 隧道：`ssh -p 2222 -L 5432:localhost:5432 root@47.113.190.38` |
+
+### 认证红线
+
+| 规则 | 说明 |
+|------|------|
+| **SSH 仅允许密钥登录** | `/etc/ssh/sshd_config` 中 `PasswordAuthentication no`，禁用 root 密码登录 |
+| **服务账号禁止 SSH** | postgres、mysql、www-data 等服务账号的 `.ssh/authorized_keys` 必须为空或不存在 |
+| **数据库密码强度** | 所有数据库密码必须随机生成 ≥ 16 位（`openssl rand -base64 16`），禁止使用字典单词 |
+| **定期巡检** | 每周检查服务账号的 `authorized_keys`、crontab、异常进程 |
+
+### 代码中数据库连接
+
+- 数据库 host 必须用 `localhost` 或 `127.0.0.1`，**禁止使用公网 IP**
+- 生产环境用 RDS 时，走 VPC 内网地址，不开启公网访问
+- `.env` 中的数据库密码不得与任何其他服务共用
+
+### 入侵应急响应
+
+发现异常时按此顺序处置：
+1. `kill -9` 恶意进程 PID
+2. 删恶意文件 + 攻击者 SSH key
+3. 改所有密码
+4. 封锁端口 + 加固防火墙
+5. 查 crontab/systemd 持久化后门

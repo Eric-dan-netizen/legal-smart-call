@@ -39,6 +39,9 @@
 - 执行 `git push --force`。
 - 执行 `docker system prune` 等可能影响其他容器的命令。
 - 在外网暴露未加密的服务或关闭防火墙规则。
+- **在服务器上开放数据库端口（5432/3306/6379/27017）到 0.0.0.0。**
+- **将生产数据库连接字符串中的 host 配置为公网 IP 而非 localhost/内网地址。**
+- **在服务器上为服务账号（postgres/mysql/www-data）配置 SSH authorized_keys。**
 
 ## 三、隐私与数据保护
 
