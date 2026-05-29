@@ -149,7 +149,13 @@ export class CallsController {
     const [logs] = await this.callsService.getCallLogs(tenant, {});
     const log = logs.find(l => l.id === id);
     if (!log) throw new NotFoundException('通话记录不存在');
-    return log;
+
+    let transcript: any = null;
+    if (log.callId) {
+      transcript = this.recordingService.readTranscript(tenant, log.callId);
+    }
+
+    return { ...log, transcript };
   }
 
   /**
@@ -171,6 +177,7 @@ export class CallsController {
       'Content-Type': 'audio/mpeg',
       'Content-Length': stat.size,
       'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=3600',
     });
 
     return new StreamableFile(fs.createReadStream(filePath));

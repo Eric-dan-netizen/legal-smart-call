@@ -370,14 +370,21 @@ export class CallsService {
   }
 
   async getCallLogs(tenantId: string, filters?: {
-    customerId?: string; status?: string; page?: number; limit?: number;
+    customerId?: string; status?: string; keyword?: string; page?: number; limit?: number;
   }) {
     const query = this.logRepo.createQueryBuilder('log')
+      .leftJoinAndSelect('log.customer', 'customer')
       .where('log.tenantId = :tenantId', { tenantId })
       .orderBy('log.createdAt', 'DESC');
 
     if (filters?.customerId) query.andWhere('log.customerId = :customerId', { customerId: filters.customerId });
     if (filters?.status) query.andWhere('log.callStatus = :status', { status: filters.status });
+    if (filters?.keyword) {
+      query.andWhere('(customer.name LIKE :kw OR customer.phoneEncrypted LIKE :kw2)', {
+        kw: `%${filters.keyword}%`,
+        kw2: `%${filters.keyword}%`,
+      });
+    }
     if (filters?.page && filters?.limit) query.skip((filters.page - 1) * filters.limit).take(filters.limit);
 
     return query.getManyAndCount();

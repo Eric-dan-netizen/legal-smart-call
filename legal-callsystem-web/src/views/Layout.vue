@@ -23,6 +23,10 @@
           <el-icon><Document /></el-icon>
           <span>话术管理</span>
         </el-menu-item>
+        <el-menu-item index="/call-logs">
+          <el-icon><Headset /></el-icon>
+          <span>通话记录</span>
+        </el-menu-item>
         <el-menu-item index="/statistics">
           <el-icon><TrendCharts /></el-icon>
           <span>数据统计</span>
@@ -46,7 +50,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { DataAnalysis, User, Phone, Document, TrendCharts } from '@element-plus/icons-vue'
+import { DataAnalysis, User, Phone, Document, TrendCharts, Headset } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()

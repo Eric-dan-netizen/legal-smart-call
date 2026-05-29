@@ -100,4 +100,18 @@ export class RecordingService {
     if (!fs.existsSync(filePath)) return null;
     return fs.readFileSync(filePath);
   }
+
+  /**
+   * 读取对话记录 JSON
+   */
+  readTranscript(tenantId: string, callId: string): any | null {
+    const dir = this.getDir(tenantId);
+    const filePath = path.join(dir, `${callId}.json`);
+    if (!fs.existsSync(filePath)) return null;
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch {
+      return null;
+    }
+  }
 }
