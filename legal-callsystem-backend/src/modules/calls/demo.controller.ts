@@ -4,8 +4,11 @@ import { Repository } from 'typeorm';
 import { Customer } from '../customers/customer.entity';
 import { CallTask } from './call-task.entity';
 import { CallsService } from './calls.service';
+import { RecordingService } from './recording.service';
 import { LlmService, ChatMessage } from '../voice/llm.service';
+import { TtsService } from '../voice/tts.service';
 import { CallTaskStatus } from './types';
+import * as fs from 'fs';
 
 const DEMO_CUSTOMER_TEXTS: Record<string, string[]> = {
   divorce: [
@@ -42,6 +45,8 @@ export class DemoController {
   constructor(
     private readonly callsService: CallsService,
     private readonly llmService: LlmService,
+    private readonly recordingService: RecordingService,
+    private readonly ttsService: TtsService,
     @InjectRepository(Customer)
     private readonly customerRepo: Repository<Customer>,
     @InjectRepository(CallTask)
@@ -84,14 +89,18 @@ export class DemoController {
 
     // 3. 执行外呼（模拟模式）
     const callResult = await this.callsService.executeCall(task, customer.id);
-    if (!callResult.success) {
+    if (!callResult.success || !callResult.callId) {
       return { success: false, message: '外呼失败', error: callResult.error };
     }
+
+    const callId = callResult.callId;
+    const tenantId: string = (customer as any).tenantId || 'demo';
 
     // 4. 模拟多轮对话
     const conversation: Array<{ role: string; content: string }> = [];
     const customerTexts = DEMO_CUSTOMER_TEXTS[caseType] || DEMO_CUSTOMER_TEXTS.general;
     const history: ChatMessage[] = [];
+    const audioBuffers: Buffer[] = [];
 
     for (let i = 0; i < Math.min(maxRounds, customerTexts.length); i++) {
       const userText = customerTexts[i];
@@ -109,18 +118,45 @@ export class DemoController {
       conversation.push({ role: 'assistant', content: aiReply });
       history.push({ role: 'assistant', content: aiReply });
 
+      // 生成 TTS 音频
+      try {
+        const audioPath = await this.ttsService.synthesize(aiReply);
+        if (fs.existsSync(audioPath)) {
+          audioBuffers.push(fs.readFileSync(audioPath));
+        }
+      } catch (e) {
+        this.logger.warn(`TTS 合成跳过: ${e.message}`);
+      }
+
       this.logger.log(`Demo 对话轮次 ${i + 1}: ${userText.substring(0, 20)}... → ${aiReply.substring(0, 20)}...`);
     }
+
+    // 5. 保存录音和对话记录
+    let recordingPath: string | null = null;
+    if (audioBuffers.length > 0) {
+      const combined = Buffer.concat(audioBuffers);
+      recordingPath = await this.recordingService.saveFromTts(tenantId, callId, combined);
+      try {
+        await this.callsService.updateCallLog(callId, {
+          recordingUrl: recordingPath,
+        } as any);
+      } catch (e) {
+        this.logger.warn(`更新 CallLog recordingPath 失败: ${e.message}`);
+      }
+    }
+
+    await this.recordingService.saveTranscript(tenantId, callId, conversation);
 
     return {
       success: true,
       data: {
-        callId: callResult.callId,
+        callId,
         sessionId: callResult.sessionId,
         customer: { id: customer.id, name: customer.name },
         caseType,
         rounds: maxRounds,
         conversation,
+        recordingPath,
       },
     };
   }

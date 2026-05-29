@@ -37,6 +37,9 @@ export class CallLog {
   recordingUrl: string;
 
   @Column({ nullable: true })
+  localRecordingPath: string;
+
+  @Column({ nullable: true })
   transcript: string;
 
   @Column({ nullable: true })

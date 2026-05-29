@@ -11,6 +11,7 @@ import { AliyunCallService } from './aliyun-call.service';
 import { BlacklistService } from './blacklist.service';
 import { CallFrequencyService } from './call-frequency.service';
 import { VoiceGatewayService } from '../voice/voice-gateway.service';
+import { RecordingService } from './recording.service';
 import { CallTaskStatus, CallStatus } from './types';
 
 @Injectable()
@@ -29,6 +30,7 @@ export class CallsService {
     private blacklistService: BlacklistService,
     private frequencyService: CallFrequencyService,
     private voiceGateway: VoiceGatewayService,
+    private recordingService: RecordingService,
   ) {}
 
   async createTask(tenantId: string, data: CreateTaskDto) {
@@ -278,7 +280,15 @@ export class CallsService {
 
     log.callStatus = statusMap[data.status] || CallStatus.FAILED;
     log.duration = data.duration;
-    if (data.recordingUrl) log.recordingUrl = data.recordingUrl;
+    if (data.recordingUrl) {
+      log.recordingUrl = data.recordingUrl;
+      // 异步下载录音到本地，不阻塞回调响应
+      const tenantId = (log as any).tenantId || (log.tenant as any)?.id;
+      if (tenantId) {
+        this.recordingService.downloadAndStore(tenantId, data.callId, data.recordingUrl)
+          .catch(e => this.logger.error(`录音后台上传失败: ${e.message}`));
+      }
+    }
     if (data.transcript) log.transcript = data.transcript;
     if (data.transcript) log.intentResult = this.analyzeIntent(data.transcript);
 

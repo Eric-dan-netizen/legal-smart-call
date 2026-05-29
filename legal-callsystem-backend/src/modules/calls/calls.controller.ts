@@ -1,14 +1,18 @@
-import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Query, Res, StreamableFile, NotFoundException } from '@nestjs/common';
+import { Response } from 'express';
 import { CallsService, CreateTaskDto } from './calls.service';
 import { AliyunCallService } from './aliyun-call.service';
+import { RecordingService } from './recording.service';
 import { Tenant } from '../tenants/tenant.entity';
 import { CurrentTenant } from '../../decorators/current-tenant.decorator';
+import * as fs from 'fs';
 
 @Controller('calls')
 export class CallsController {
   constructor(
     private readonly callsService: CallsService,
     private readonly aliyunCallService: AliyunCallService,
+    private readonly recordingService: RecordingService,
   ) {}
 
   @Post('tasks')
@@ -135,14 +139,50 @@ export class CallsController {
   }
 
   /**
+   * 获取单条通话记录详情
+   */
+  @Get('logs/:id')
+  async getCallLogDetail(
+    @CurrentTenant() tenant: any,
+    @Param('id') id: string,
+  ) {
+    const [logs] = await this.callsService.getCallLogs(tenant, {});
+    const log = logs.find(l => l.id === id);
+    if (!log) throw new NotFoundException('通话记录不存在');
+    return log;
+  }
+
+  /**
+   * 播放本地录音文件
+   */
+  @Get('recording/:callId/file')
+  async streamRecording(
+    @CurrentTenant() tenant: any,
+    @Param('callId') callId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const filePath = this.recordingService.getFilePath(tenant, callId);
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('录音文件不存在');
+    }
+
+    const stat = fs.statSync(filePath);
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': stat.size,
+      'Accept-Ranges': 'bytes',
+    });
+
+    return new StreamableFile(fs.createReadStream(filePath));
+  }
+
+  /**
    * 通话状态回调（阿里云回调通知）
    */
   @Post('callback')
   async handleCallback(@Body() data: any) {
-    // 阿里云会推送通话状态和录音等回调
-    // https://help.aliyun.com/document_detail/120632.html
     const { callId, status, duration, recordingUrl } = data;
-    
+
     await this.callsService.updateCallLog(callId, {
       callStatus: status,
       duration: duration || 0,

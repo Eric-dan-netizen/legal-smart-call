@@ -13,6 +13,7 @@ import { DemoController } from './demo.controller';
 import { CallsService } from './calls.service';
 import { BlacklistService } from './blacklist.service';
 import { CallFrequencyService } from './call-frequency.service';
+import { RecordingService } from './recording.service';
 import { AliyunCallService, TencentCallService } from './aliyun-call.service';
 import { AliyunSignatureService } from '../common/aliyun-signature.service';
 import { VoiceModule } from '../voice/index';
@@ -24,7 +25,7 @@ import { VoiceModule } from '../voice/index';
     VoiceModule,
   ],
   controllers: [CallsController, BlacklistController, FrequencyController, DemoController],
-  providers: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService, TencentCallService, AliyunSignatureService],
-  exports: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService],
+  providers: [CallsService, BlacklistService, CallFrequencyService, RecordingService, AliyunCallService, TencentCallService, AliyunSignatureService],
+  exports: [CallsService, BlacklistService, CallFrequencyService, RecordingService, AliyunCallService],
 })
 export class CallsModule {}
