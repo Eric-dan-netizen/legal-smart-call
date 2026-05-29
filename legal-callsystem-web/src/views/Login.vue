@@ -40,11 +40,10 @@ const handleLogin = async () => {
     const res = await axios.post('/auth/login', {
       username: form.value.username,
       password: form.value.password,
-      tenantName: '默认律所'
     })
     console.log('登录成功:', res.data)
-    localStorage.setItem('token', res.data.access_token)
-    localStorage.setItem('user', JSON.stringify(res.data.user))
+    localStorage.setItem('token', res.data.data.accessToken)
+    localStorage.setItem('user', JSON.stringify(res.data.data.user))
     router.push('/dashboard')
   } catch (e) {
     console.error('登录失败:', e)

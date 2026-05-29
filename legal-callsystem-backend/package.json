@@ -19,7 +19,8 @@
     "migration:generate": "npm run typeorm -- migration:generate -d ./src/database/datasource.ts",
     "migration:run": "npm run typeorm -- migration:run -d ./src/database/datasource.ts",
     "seed": "ts-node scripts/seed.ts",
-    "demo": "ts-node scripts/demo.ts"
+    "demo": "ts-node scripts/demo.ts",
+    "test-tts": "ts-node scripts/test-tts.ts"
   },
   "dependencies": {
     "@nestjs-modules/ioredis": "^2.0.2",

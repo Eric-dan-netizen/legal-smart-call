@@ -9,7 +9,7 @@ import Statistics from '../views/Statistics.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
-  { path: '/login', component: Login },
+  { path: '/login', component: Login, meta: { noAuth: true } },
   {
     path: '/',
     component: Layout,
@@ -26,6 +26,19 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.noAuth) {
+    next()
+    return
+  }
+  const token = localStorage.getItem('token')
+  if (!token || token === 'undefined') {
+    next('/login')
+    return
+  }
+  next()
 })
 
 export default router

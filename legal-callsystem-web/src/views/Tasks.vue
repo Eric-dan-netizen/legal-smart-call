@@ -85,9 +85,9 @@ const loadData = async () => {
     axios.get('/customers', { headers })
   ])
   
-  tasks.value = tasksRes.data || []
+  tasks.value = Array.isArray(tasksRes.data?.[0]) ? tasksRes.data[0] : (tasksRes.data || [])
   scripts.value = scriptsRes.data || []
-  customers.value = custRes.data || []
+  customers.value = Array.isArray(custRes.data?.[0]) ? custRes.data[0] : (custRes.data || [])
 }
 
 const createTask = async () => {

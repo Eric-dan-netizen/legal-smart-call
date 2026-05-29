@@ -12,6 +12,7 @@ import { CallsModule } from './modules/calls/calls.module';
 import { ScriptsModule } from './modules/scripts/scripts.module';
 import { WechatModule } from './modules/wechat/wechat.module';
 import { VoiceModule } from './modules/voice/index';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 
 // 实体
 import { Tenant } from './modules/tenants/tenant.entity';
@@ -72,6 +73,7 @@ import { WechatSession } from './modules/wechat/wechat-session.entity';
     ScheduleModule.forRoot(),
 
     // 业务模块
+    StatisticsModule,
     AuthModule,
     TenantsModule,
     CustomersModule,

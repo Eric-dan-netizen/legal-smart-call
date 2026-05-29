@@ -23,17 +23,17 @@ async function autoSeed(ds: DataSource) {
   const scriptRepo = ds.getRepository(Script);
   const customerRepo = ds.getRepository(Customer);
 
-  const tenant = await tenantRepo.save({ name: '演示律所', licenseKey: 'DEMO-KEY-2026' } as any);
+  const tenant = await tenantRepo.save({ name: '默认律所', licenseKey: 'DEMO-KEY-2026' } as any);
   const passwordHash = await bcrypt.hash('admin123', 10);
   await userRepo.save({ tenant, username: 'admin', password: passwordHash, name: '系统管理员', role: 'admin', isActive: true } as any);
 
   const scripts = [
-    { name: '离婚咨询开场', type: 'opening', tags: ['divorce'], textContent: '你是演示律所的婚姻家事法律顾问，擅长处理离婚纠纷。你的沟通风格专业、温和、有同理心。核心任务：了解婚姻状况、财产和子女情况，介绍律所优势，邀约客户到店。合规红线：不得承诺结果，不得教唆伪造证据。' },
-    { name: '劳动纠纷开场', type: 'opening', tags: ['labor'], textContent: '你是演示律所的劳动法法律顾问，擅长处理劳动争议和工伤赔偿。你的沟通风格务实、清晰、有力量感。核心任务：了解劳动者情况、纠纷类型、关键事实，介绍仲裁和诉讼流程，邀约到店。合规红线：不得煽动过激维权，不得承诺保证具体金额。' },
-    { name: '债务追讨开场', type: 'opening', tags: ['debt'], textContent: '你是演示律所的债权债务法律顾问，擅长处理民间借贷和商事债务纠纷。核心任务：了解债权债务关系、判断性质、评估时效和风险，介绍财产保全和执行手段，邀约到店。合规红线：不得教唆暴力讨债，不得承诺一定能追回。' },
-    { name: '交通事故开场', type: 'opening', tags: ['traffic'], textContent: '你是演示律所的交通事故法律顾问，擅长处理交通肇事赔偿和保险理赔。核心任务：了解事故情况、保险情况、伤情进展，评估赔偿项目，介绍处理流程，邀约到店。合规红线：不得教唆伪造伤情，不得承诺具体金额。' },
-    { name: '刑事辩护开场', type: 'opening', tags: ['criminal'], textContent: '你是演示律所的刑事辩护法律顾问，擅长刑事辩护和刑事合规。核心任务：了解案件情况、当事人状态、进展阶段，介绍诉讼程序，邀约家属到店。合规红线：不得教唆串供翻供，不得承诺一定能取保。' },
-    { name: '通用法律咨询', type: 'opening', tags: ['general'], textContent: '你是演示律所的智能法律顾问，提供高效专业的法律服务。核心任务：了解客户需求，快速判断需求类型，介绍律所专业领域和收费模式，邀约到店。合规红线：不得承诺结果，遵守信息保密义务。' },
+    { name: '离婚咨询开场', type: 'opening', tags: ['divorce'], textContent: '你是默认律所的婚姻家事法律顾问，擅长处理离婚纠纷。你的沟通风格专业、温和、有同理心。核心任务：了解婚姻状况、财产和子女情况，介绍律所优势，邀约客户到店。合规红线：不得承诺结果，不得教唆伪造证据。' },
+    { name: '劳动纠纷开场', type: 'opening', tags: ['labor'], textContent: '你是默认律所的劳动法法律顾问，擅长处理劳动争议和工伤赔偿。你的沟通风格务实、清晰、有力量感。核心任务：了解劳动者情况、纠纷类型、关键事实，介绍仲裁和诉讼流程，邀约到店。合规红线：不得煽动过激维权，不得承诺保证具体金额。' },
+    { name: '债务追讨开场', type: 'opening', tags: ['debt'], textContent: '你是默认律所的债权债务法律顾问，擅长处理民间借贷和商事债务纠纷。核心任务：了解债权债务关系、判断性质、评估时效和风险，介绍财产保全和执行手段，邀约到店。合规红线：不得教唆暴力讨债，不得承诺一定能追回。' },
+    { name: '交通事故开场', type: 'opening', tags: ['traffic'], textContent: '你是默认律所的交通事故法律顾问，擅长处理交通肇事赔偿和保险理赔。核心任务：了解事故情况、保险情况、伤情进展，评估赔偿项目，介绍处理流程，邀约到店。合规红线：不得教唆伪造伤情，不得承诺具体金额。' },
+    { name: '刑事辩护开场', type: 'opening', tags: ['criminal'], textContent: '你是默认律所的刑事辩护法律顾问，擅长刑事辩护和刑事合规。核心任务：了解案件情况、当事人状态、进展阶段，介绍诉讼程序，邀约家属到店。合规红线：不得教唆串供翻供，不得承诺一定能取保。' },
+    { name: '通用法律咨询', type: 'opening', tags: ['general'], textContent: '你是默认律所的智能法律顾问，提供高效专业的法律服务。核心任务：了解客户需求，快速判断需求类型，介绍律所专业领域和收费模式，邀约到店。合规红线：不得承诺结果，遵守信息保密义务。' },
   ];
   for (const s of scripts) {
     await scriptRepo.save({ tenant, isActive: true, ...s } as any);

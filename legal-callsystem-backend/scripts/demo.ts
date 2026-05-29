@@ -111,7 +111,7 @@ ${COLORS.reset}`);
     const scriptRepo = ds.getRepository(Script);
     const customerRepo = ds.getRepository(Customer);
 
-    tenant = await tenantRepo.save({ name: '演示律所', licenseKey: 'DEMO-KEY-2026' } as any);
+    tenant = await tenantRepo.save({ name: '默认律所', licenseKey: 'DEMO-KEY-2026' } as any);
     await userRepo.save({ tenant, username: 'admin', password: await bcrypt.hash('admin123', 10), name: '系统管理员', role: 'admin', isActive: true } as any);
 
     const scriptDefs = [

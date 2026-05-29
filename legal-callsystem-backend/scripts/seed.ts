@@ -43,7 +43,7 @@ async function seed() {
 
   // 1. 创建演示租户
   const tenant = await tenantRepo.save({
-    name: '演示律所',
+    name: '默认律所',
     licenseKey: 'DEMO-KEY-2026',
   } as any);
   console.log(`✅ 租户: ${tenant.name}`);
@@ -67,7 +67,7 @@ async function seed() {
       name: '离婚咨询开场',
       type: 'opening' as const,
       tags: ['divorce'],
-      textContent: `你是演示律所的婚姻家事法律顾问，擅长处理离婚纠纷。你的沟通风格专业、温和、有同理心。
+      textContent: `你是默认律所的婚姻家事法律顾问，擅长处理离婚纠纷。你的沟通风格专业、温和、有同理心。
 
 核心任务：
 1. 了解客户的婚姻状况（感情基础、矛盾起因、分居情况）
@@ -86,7 +86,7 @@ async function seed() {
       name: '劳动纠纷开场',
       type: 'opening' as const,
       tags: ['labor'],
-      textContent: `你是演示律所的劳动法法律顾问，擅长处理劳动争议和工伤赔偿。你的沟通风格务实、清晰、有力量感。
+      textContent: `你是默认律所的劳动法法律顾问，擅长处理劳动争议和工伤赔偿。你的沟通风格务实、清晰、有力量感。
 
 核心任务：
 1. 了解劳动者基本情况（在职/离职、劳动合同签订情况、工龄）
@@ -105,7 +105,7 @@ async function seed() {
       name: '债务追讨开场',
       type: 'opening' as const,
       tags: ['debt'],
-      textContent: `你是演示律所的债权债务法律顾问，擅长处理民间借贷和商事债务纠纷。你的沟通风格严谨、条理清晰。
+      textContent: `你是默认律所的债权债务法律顾问，擅长处理民间借贷和商事债务纠纷。你的沟通风格严谨、条理清晰。
 
 核心任务：
 1. 了解债权债务关系基本情况（借款金额、时间、利息约定、借条/合同）
@@ -124,7 +124,7 @@ async function seed() {
       name: '交通事故开场',
       type: 'opening' as const,
       tags: ['traffic'],
-      textContent: `你是演示律所的交通事故法律顾问，擅长处理交通肇事赔偿和保险理赔。你的沟通风格细致、有耐心。
+      textContent: `你是默认律所的交通事故法律顾问，擅长处理交通肇事赔偿和保险理赔。你的沟通风格细致、有耐心。
 
 核心任务：
 1. 了解事故基本情况（时间、地点、责任认定、受伤情况）
@@ -143,7 +143,7 @@ async function seed() {
       name: '刑事辩护开场',
       type: 'opening' as const,
       tags: ['criminal'],
-      textContent: `你是演示律所的刑事辩护法律顾问，擅长刑事辩护和刑事合规。你的沟通风格沉稳、专业、给人安全感。
+      textContent: `你是默认律所的刑事辩护法律顾问，擅长刑事辩护和刑事合规。你的沟通风格沉稳、专业、给人安全感。
 
 核心任务：
 1. 了解案件基本情况（涉嫌罪名、办案单位、是否在押）
@@ -163,7 +163,7 @@ async function seed() {
       name: '通用法律咨询',
       type: 'opening' as const,
       tags: ['general'],
-      textContent: `你是演示律所的智能法律顾问，致力于为客户提供高效、专业的法律服务。你的沟通风格专业、热情、有亲和力。
+      textContent: `你是默认律所的智能法律顾问，致力于为客户提供高效、专业的法律服务。你的沟通风格专业、热情、有亲和力。
 
 核心任务：
 1. 礼貌问候来电客户，了解客户的基本信息和来电目的
