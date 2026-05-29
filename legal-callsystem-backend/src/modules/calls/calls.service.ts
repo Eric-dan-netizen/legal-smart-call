@@ -146,6 +146,12 @@ export class CallsService {
     }
 
     const tenantId = (customer as any).tenantId || task.tenant?.id;
+    const callNumber = this.configService.get<string>('ALIYUN_CALL_NUMBER');
+
+    // 模拟模式：无真实外呼号码时跳过合规检查
+    if (!callNumber) {
+      return this.simulateCall(task, customer, phone);
+    }
 
     // 1. 黑名单检查
     const isBlacklisted = await this.blacklistService.isBlacklisted(tenantId, phone);
@@ -159,11 +165,6 @@ export class CallsService {
     if (!frequencyCheck.allowed) {
       this.logger.warn(`客户 ${customerId} 频率限制：${frequencyCheck.reason}`);
       return { success: false, error: frequencyCheck.reason };
-    }
-
-    const callNumber = this.configService.get<string>('ALIYUN_CALL_NUMBER');
-    if (!callNumber) {
-      return this.simulateCall(task, customer, phone);
     }
 
     const agentNumber = this.configService.get<string>('AGENT_NUMBER');
@@ -222,14 +223,14 @@ export class CallsService {
     const callId = `mock_${Date.now()}_${phone.slice(-4)}`;
     this.logger.log(`模拟外呼：${phone} (CALL_NUMBER 未配置)`);
 
-    const tenantId = (customer as any).tenantId || task.tenant?.id;
+    const tenantId = (customer as any).tenantId || (task.tenant as any)?.id;
 
     // 状态流转：INITIATED → ANSWERED
     const log = this.logRepo.create({
       callId,
       callStatus: CallStatus.INITIATED,
       duration: 0,
-      tenant: task.tenant,
+      tenant: { id: tenantId },
       customer,
       task,
     });
