@@ -38,6 +38,9 @@ describe('Call Flow E2E (v0.8)', () => {
   let customer: Customer;
 
   beforeAll(async () => {
+    // Mock time to within calling window (8:00-21:00) for CI timezone compatibility
+    jest.spyOn(Date.prototype, 'getHours').mockReturnValue(10);
+
     module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
@@ -71,6 +74,7 @@ describe('Call Flow E2E (v0.8)', () => {
   });
 
   afterAll(async () => {
+    jest.restoreAllMocks();
     await module?.close();
   });
 
