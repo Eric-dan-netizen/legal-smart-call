@@ -23,12 +23,14 @@ export class VoiceController {
   @Post('start')
   @HttpCode(HttpStatus.OK)
   async startConversation(@Body() body: any) {
+    const callId = body.sessionId || `rest_${Date.now()}_${body.customerId || 'anon'}`;
     const sessionId = await this.voiceGateway.startConversation(
-      body.customerId,
-      body.tenantId,
+      callId,
+      body.customerId || 'rest-user',
+      body.tenantId || 'default',
       body.scriptId,
     );
-    
+
     return {
       success: true,
       data: { sessionId },
@@ -56,7 +58,9 @@ export class VoiceController {
       // 获取或创建会话
       let useSessionId = sessionId;
       if (!useSessionId) {
-        useSessionId = await this.voiceGateway.startConversation(
+        useSessionId = `rest_${Date.now()}_chat`;
+        await this.voiceGateway.startConversation(
+          useSessionId,
           'test-customer',
           'test-tenant',
         );
@@ -109,8 +113,11 @@ export class VoiceController {
     try {
       const asrResult = await this.asrService.recognize(audio.buffer);
 
-      const sessionId = body.sessionId
-        || await this.voiceGateway.startConversation(body.customerId || 'audio-user', body.tenantId || 'test-tenant');
+      let sessionId = body.sessionId;
+      if (!sessionId) {
+        sessionId = `rest_${Date.now()}_audio`;
+        await this.voiceGateway.startConversation(sessionId, body.customerId || 'audio-user', body.tenantId || 'test-tenant');
+      }
       const history = this.voiceGateway.getHistory(sessionId);
       history.push({ role: 'user', content: asrResult.text });
 

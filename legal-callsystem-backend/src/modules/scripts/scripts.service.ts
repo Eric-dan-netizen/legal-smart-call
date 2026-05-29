@@ -15,9 +15,9 @@ export class ScriptsService {
     const script = this.scriptRepo.create({
       tenant,
       name: data.name,
-      // 兼容 textContent 和 content 两种字段名
       textContent: data.textContent || data.content || '',
       type: (data.type as any) || 'general',
+      tags: data.tags || [],
     });
     return this.scriptRepo.save(script);
   }
@@ -32,7 +32,7 @@ export class ScriptsService {
       query.andWhere('script.type = :type', { type: filters.type });
     }
     if (filters?.tag) {
-      query.andWhere('script.tags @> :tag', { tag: [filters.tag] });
+      query.andWhere('script.tags LIKE :tag', { tag: `%${filters.tag}%` });
     }
 
     return query.getMany();

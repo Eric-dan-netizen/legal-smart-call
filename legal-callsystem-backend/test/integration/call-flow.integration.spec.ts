@@ -98,6 +98,27 @@ describe('Call Flow E2E (v0.8)', () => {
     const logs = await logRepo.find({ where: { callId: result.callId } } as any);
     expect(logs.length).toBe(1);
     expect(logs[0].callStatus).toBe(CallStatus.ANSWERED);
+    expect(logs[0].sessionId).toBe(result.sessionId);
+  });
+
+  it('should create CallLog with sessionId and correct status flow', async () => {
+    const task = await taskRepo.save({
+      tenant,
+      name: '状态流转测试',
+      scriptId: 'script-002',
+      scheduleTime: new Date(),
+      status: CallTaskStatus.RUNNING,
+      totalCount: 1,
+      customerIds: [customer.id],
+    } as any);
+
+    const result = await callsService.executeCall(task, customer.id);
+    expect(result.success).toBe(true);
+
+    const log = await logRepo.findOne({ where: { callId: result.callId } } as any);
+    expect(log).toBeTruthy();
+    expect(log!.sessionId).toBeTruthy();
+    expect(log!.callStatus).toBe(CallStatus.ANSWERED);
   });
 
   it('should block blacklisted customer', async () => {

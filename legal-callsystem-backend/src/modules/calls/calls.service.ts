@@ -188,6 +188,7 @@ export class CallsService {
       await this.frequencyService.recordCall(tenantId, phone);
 
       const sessionId = await this.voiceGateway.startConversation(
+        callResult.callId,
         customerId,
         tenantId,
         task.scriptId,
@@ -220,21 +221,30 @@ export class CallsService {
     this.logger.log(`模拟外呼：${phone} (CALL_NUMBER 未配置)`);
 
     const tenantId = (customer as any).tenantId || task.tenant?.id;
-    const sessionId = await this.voiceGateway.startConversation(
-      customer.id,
-      tenantId,
-      task.scriptId,
-    );
 
+    // 状态流转：INITIATED → ANSWERED
     const log = this.logRepo.create({
       callId,
-      callStatus: CallStatus.ANSWERED,
+      callStatus: CallStatus.INITIATED,
       duration: 0,
       tenant: task.tenant,
       customer,
       task,
     });
     await this.logRepo.save(log);
+
+    const sessionId = await this.voiceGateway.startConversation(
+      callId,
+      customer.id,
+      tenantId,
+      task.scriptId,
+    );
+
+    // 转为 ANSWERED → IN_CONVERSATION
+    await this.logRepo.update(log.id, {
+      callStatus: CallStatus.ANSWERED,
+      sessionId,
+    });
 
     await this.frequencyService.recordCall(tenantId, phone);
     await this.taskRepo.increment({ id: task.id }, 'completedCount', 1);
@@ -301,6 +311,23 @@ export class CallsService {
       if (data.recordingUrl) log.recordingUrl = data.recordingUrl;
       await this.logRepo.save(log);
     }
+  }
+
+  async updateCallStatus(callId: string, status: CallStatus): Promise<void> {
+    const log = await this.logRepo.findOne({ where: { callId } });
+    if (log) {
+      log.callStatus = status;
+      if (status === CallStatus.COMPLETED) {
+        log.conversationEndedAt = new Date();
+      }
+      await this.logRepo.save(log);
+      this.logger.log(`通话状态更新: ${callId} → ${status}`);
+    }
+  }
+
+  async endCallConversation(callId: string): Promise<void> {
+    this.voiceGateway.endConversation(callId);
+    await this.updateCallStatus(callId, CallStatus.COMPLETED);
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)

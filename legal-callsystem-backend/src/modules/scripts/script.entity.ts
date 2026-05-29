@@ -31,6 +31,9 @@ export class Script {
   @Column('simple-json', { nullable: true })
   keywords: Record<string, string>;
 
+  @Column('simple-array', { nullable: true })
+  tags: string[];
+
   @Column({ default: true })
   isActive: boolean;
 

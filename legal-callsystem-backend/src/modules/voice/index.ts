@@ -7,6 +7,7 @@ import { VoiceController } from './voice.controller';
 import { AsrService } from './asr.service';
 import { LlmService } from './llm.service';
 import { TtsService } from './tts.service';
+import { ScriptPromptBuilder } from './script-prompt.builder';
 import { AliyunSignatureService } from '../common/aliyun-signature.service';
 
 @Module({
@@ -23,6 +24,7 @@ import { AliyunSignatureService } from '../common/aliyun-signature.service';
     AsrService,
     LlmService,
     TtsService,
+    ScriptPromptBuilder,
     AliyunSignatureService,
   ],
   exports: [

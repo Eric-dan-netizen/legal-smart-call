@@ -51,6 +51,12 @@ export class CallLog {
   @Column({ nullable: true })
   errorMsg: string;
 
+  @Column({ nullable: true })
+  sessionId: string;
+
+  @Column({ nullable: true })
+  conversationEndedAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 }

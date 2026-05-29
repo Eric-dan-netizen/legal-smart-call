@@ -9,9 +9,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { AsrService } from './asr.service';
-import { LlmService } from './llm.service';
-import { TtsService } from './tts.service';
 import { VoiceGatewayService } from './voice-gateway.service';
 
 @WebSocketGateway({ namespace: '/voice', cors: { origin: '*' } })
@@ -20,9 +17,6 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
   constructor(
-    private readonly asrService: AsrService,
-    private readonly llmService: LlmService,
-    private readonly ttsService: TtsService,
     private readonly voiceGateway: VoiceGatewayService,
   ) {}
 
@@ -41,12 +35,14 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join-call')
   async handleJoinCall(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { callId: string; tenantId: string; customerId: string },
+    @MessageBody() data: { callId: string; tenantId: string; customerId: string; scriptId?: string },
   ) {
     client.join(data.callId);
     const sessionId = await this.voiceGateway.startConversation(
+      data.callId,
       data.customerId,
       data.tenantId,
+      data.scriptId,
     );
     this.logger.log(`通话加入: ${data.callId}, session: ${sessionId}`);
     return { event: 'joined', data: { callId: data.callId, sessionId } };
@@ -59,25 +55,16 @@ export class VoiceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       const audioBuffer = Buffer.from(data.audio, 'base64');
-      const asrResult = await this.asrService.recognize(audioBuffer);
-      const history = this.voiceGateway.getHistory(data.callId);
-      history.push({ role: 'user', content: asrResult.text });
+      const result = await this.voiceGateway.processRound(data.callId, audioBuffer);
 
-      const aiReply = await this.llmService.chat({
-        messages: history,
-        tenantId: 'default',
-      });
-      history.push({ role: 'assistant', content: aiReply });
-
-      const audioPath = await this.ttsService.synthesize(aiReply);
       const fs = await import('fs');
-      const audioBase64 = fs.readFileSync(audioPath).toString('base64');
+      const audioBase64 = fs.readFileSync(result.audioUrl).toString('base64');
 
       this.server.to(data.callId).emit('ai-reply', {
-        text: aiReply,
+        text: result.reply,
         audio: audioBase64,
-        userText: asrResult.text,
-        confidence: asrResult.confidence,
+        userText: result.text,
+        duration: result.duration,
       });
 
       return { event: 'ack' };
