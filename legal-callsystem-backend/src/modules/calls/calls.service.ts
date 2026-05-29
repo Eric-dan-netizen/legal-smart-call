@@ -2,15 +2,16 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import * as CryptoJS from 'crypto-js';
 import { CallTask } from './call-task.entity';
 import { CallLog } from './call-log.entity';
 import { Customer } from '../customers/customer.entity';
-import { Tenant } from '../tenants/tenant.entity';
 import { AliyunCallService } from './aliyun-call.service';
 import { BlacklistService } from './blacklist.service';
 import { CallFrequencyService } from './call-frequency.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import * as CryptoJS from 'crypto-js';
+import { VoiceGatewayService } from '../voice/voice-gateway.service';
+import { CallTaskStatus, CallStatus } from './types';
 
 @Injectable()
 export class CallsService {
@@ -27,6 +28,7 @@ export class CallsService {
     private aliyunCallService: AliyunCallService,
     private blacklistService: BlacklistService,
     private frequencyService: CallFrequencyService,
+    private voiceGateway: VoiceGatewayService,
   ) {}
 
   async createTask(tenantId: string, data: CreateTaskDto) {
@@ -35,7 +37,7 @@ export class CallsService {
       name: data.name,
       scriptId: data.scriptId,
       scheduleTime: data.scheduleTime,
-      status: 'pending',
+      status: CallTaskStatus.PENDING,
       totalCount: data.customerIds?.length || 0,
       customerIds: data.customerIds || [],
       config: data.config || {},
@@ -54,8 +56,7 @@ export class CallsService {
     }
 
     if (filters?.page && filters?.limit) {
-      query.skip((filters.page - 1) * filters.limit)
-         .take(filters.limit);
+      query.skip((filters.page - 1) * filters.limit).take(filters.limit);
     }
 
     return query.getManyAndCount();
@@ -72,38 +73,38 @@ export class CallsService {
 
   async startTask(tenantId: string, id: string) {
     const task = await this.getTask(tenantId, id);
-    if (task.status !== 'pending') {
+    if (task.status !== CallTaskStatus.PENDING) {
       throw new BadRequestException('任务状态不允许启动');
     }
-    await this.taskRepo.update(id, { status: 'running' });
+    await this.taskRepo.update(id, { status: CallTaskStatus.RUNNING });
     return this.processTask(task);
   }
 
   async pauseTask(tenantId: string, id: string) {
     await this.getTask(tenantId, id);
-    await this.taskRepo.update(id, { status: 'paused' });
+    await this.taskRepo.update(id, { status: CallTaskStatus.PAUSED });
   }
 
   async cancelTask(tenantId: string, id: string) {
     await this.getTask(tenantId, id);
-    await this.taskRepo.update(id, { status: 'cancelled' });
+    await this.taskRepo.update(id, { status: CallTaskStatus.CANCELLED });
   }
 
   private async processTask(task: CallTask) {
     this.logger.log(`开始处理外呼任务：${task.name}, 客户数：${task.customerIds?.length}`);
-    
+
     let successCount = 0;
     let failCount = 0;
 
     for (const customerId of task.customerIds || []) {
       try {
         const currentTask = await this.taskRepo.findOneBy({ id: task.id });
-        if (currentTask?.status === 'paused' || currentTask?.status === 'cancelled') {
-          this.logger.log(`任务 ${task.id} 已${currentTask.status === 'paused' ? '暂停' : '取消'}`);
+        if (currentTask?.status === CallTaskStatus.PAUSED || currentTask?.status === CallTaskStatus.CANCELLED) {
+          this.logger.log(`任务 ${task.id} 已${currentTask.status === CallTaskStatus.PAUSED ? '暂停' : '取消'}`);
           break;
         }
 
-        const result = await this.makeCall(task, customerId);
+        const result = await this.executeCall(task, customerId);
         if (result.success) {
           successCount++;
         } else {
@@ -117,8 +118,8 @@ export class CallsService {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    await this.taskRepo.update(task.id, { 
-      status: 'completed',
+    await this.taskRepo.update(task.id, {
+      status: CallTaskStatus.COMPLETED,
       completedCount: successCount,
       successCount,
       failedCount: failCount,
@@ -128,9 +129,9 @@ export class CallsService {
     return { successCount, failCount };
   }
 
-  private async makeCall(task: CallTask, customerId: string) {
+  async executeCall(task: CallTask, customerId: string): Promise<{ success: boolean; callId?: string; sessionId?: string; error?: string }> {
     const customer = await this.customerRepo.findOneBy({ id: customerId });
-    
+
     if (!customer) {
       this.logger.warn(`客户 ${customerId} 不存在，跳过`);
       return { success: false, error: '客户不存在' };
@@ -142,57 +143,181 @@ export class CallsService {
       return { success: false, error: '手机号解密失败' };
     }
 
+    const tenantId = (customer as any).tenantId || task.tenant?.id;
+
     // 1. 黑名单检查
-    const isBlacklisted = await this.blacklistService.isBlacklisted(customer.tenantId, phone);
+    const isBlacklisted = await this.blacklistService.isBlacklisted(tenantId, phone);
     if (isBlacklisted) {
       this.logger.warn(`客户 ${customerId} 在黑名单中，跳过外呼`);
       return { success: false, error: '客户已退订（黑名单）' };
     }
 
     // 2. 频率限制检查
-    const frequencyCheck = await this.frequencyService.canCall(customer.tenantId, phone);
+    const frequencyCheck = await this.frequencyService.canCall(tenantId, phone);
     if (!frequencyCheck.allowed) {
       this.logger.warn(`客户 ${customerId} 频率限制：${frequencyCheck.reason}`);
       return { success: false, error: frequencyCheck.reason };
     }
 
+    const callNumber = this.configService.get<string>('ALIYUN_CALL_NUMBER');
+    if (!callNumber) {
+      return this.simulateCall(task, customer, phone);
+    }
+
     const agentNumber = this.configService.get<string>('AGENT_NUMBER');
     if (!agentNumber) {
-      this.logger.error('坐席号码未配置，请在环境变量中设置 AGENT_NUMBER');
-      return { success: false, error: '坐席号码未配置，请在环境变量 AGENT_NUMBER 中设置' };
+      this.logger.error('坐席号码未配置');
+      return { success: false, error: '坐席号码未配置' };
     }
 
     this.logger.log(`发起外呼：客户 ${phone} <- 坐席 ${agentNumber}`);
-    
-    try {
-      const callResult = await this.aliyunCallService.makeCall(
-        phone,
-        agentNumber,
-        task.scriptId,
-        customerId,
-      );
 
-      const log = new CallLog();
-      log.callId = callResult.callId;
-      log.callStatus = 'initiated';
-      log.duration = 0;
-      log.intentResult = '';
-      log.tenant = task.tenant;
-      log.customer = customer;
-      log.task = task;
-      
+    try {
+      const callResult = await this.aliyunCallService.makeCall(phone, agentNumber, task.scriptId, customerId);
+
+      const log = this.logRepo.create({
+        callId: callResult.callId,
+        callStatus: CallStatus.INITIATED,
+        duration: 0,
+        tenant: task.tenant,
+        customer,
+        task,
+      });
       await this.logRepo.save(log);
       await this.taskRepo.increment({ id: task.id }, 'completedCount', 1);
+      await this.frequencyService.recordCall(tenantId, phone);
 
-      // 记录外呼频率
-      await this.frequencyService.recordCall(customer.tenantId, phone);
+      const sessionId = await this.voiceGateway.startConversation(
+        customerId,
+        tenantId,
+        task.scriptId,
+      );
 
-      this.logger.log(`外呼成功：callId=${callResult.callId}, status=${callResult.status}`);
-      
-      return { success: true, callId: callResult.callId, status: callResult.status };
+      this.logger.log(`外呼成功：callId=${callResult.callId}, session=${sessionId}`);
+      return { success: true, callId: callResult.callId, sessionId };
     } catch (error) {
       this.logger.error(`外呼失败：${error.message}`);
+      await this.logRepo.save(
+        this.logRepo.create({
+          callStatus: CallStatus.FAILED,
+          duration: 0,
+          tenant: task.tenant,
+          customer,
+          task,
+          errorMsg: error.message,
+        }),
+      );
       return { success: false, error: error.message };
+    }
+  }
+
+  private async simulateCall(
+    task: CallTask,
+    customer: Customer,
+    phone: string,
+  ): Promise<{ success: boolean; callId: string; sessionId: string }> {
+    const callId = `mock_${Date.now()}_${phone.slice(-4)}`;
+    this.logger.log(`模拟外呼：${phone} (CALL_NUMBER 未配置)`);
+
+    const tenantId = (customer as any).tenantId || task.tenant?.id;
+    const sessionId = await this.voiceGateway.startConversation(
+      customer.id,
+      tenantId,
+      task.scriptId,
+    );
+
+    const log = this.logRepo.create({
+      callId,
+      callStatus: CallStatus.ANSWERED,
+      duration: 0,
+      tenant: task.tenant,
+      customer,
+      task,
+    });
+    await this.logRepo.save(log);
+
+    await this.frequencyService.recordCall(tenantId, phone);
+    await this.taskRepo.increment({ id: task.id }, 'completedCount', 1);
+
+    return { success: true, callId, sessionId };
+  }
+
+  async handleCallCallback(data: {
+    callId: string;
+    status: string;
+    duration: number;
+    recordingUrl?: string;
+    transcript?: string;
+  }) {
+    this.logger.log(`通话回调：${data.callId}, 状态：${data.status}`);
+
+    const log = await this.logRepo.findOne({ where: { callId: data.callId } });
+    if (!log) {
+      this.logger.warn(`未找到通话记录：${data.callId}`);
+      return;
+    }
+
+    const statusMap: Record<string, CallStatus> = {
+      answered: CallStatus.ANSWERED,
+      completed: CallStatus.COMPLETED,
+      no_answer: CallStatus.NO_ANSWER,
+      busy: CallStatus.BUSY,
+      rejected: CallStatus.REJECTED,
+      failed: CallStatus.FAILED,
+    };
+
+    log.callStatus = statusMap[data.status] || CallStatus.FAILED;
+    log.duration = data.duration;
+    if (data.recordingUrl) log.recordingUrl = data.recordingUrl;
+    if (data.transcript) log.transcript = data.transcript;
+    if (data.transcript) log.intentResult = this.analyzeIntent(data.transcript);
+
+    await this.logRepo.save(log);
+  }
+
+  private analyzeIntent(transcript?: string): string {
+    if (!transcript) return 'unknown';
+    const keywords: Record<string, string> = {
+      '有时间': 'positive', '可以': 'positive', '加微信': 'positive', '好的': 'positive',
+      '不需要': 'negative', '没兴趣': 'negative',
+      '在忙': 'callback', '稍后': 'callback',
+    };
+    for (const [keyword, intent] of Object.entries(keywords)) {
+      if (transcript.includes(keyword)) return intent;
+    }
+    return 'unknown';
+  }
+
+  async setAgentNumber(tenantId: string, agentNumber: string) {
+    this.logger.log(`坐席号码已更新：${agentNumber}`);
+    return { agentNumber };
+  }
+
+  async updateCallLog(callId: string, data: { duration?: number; callStatus?: string; intentResult?: string; recordingUrl?: string }) {
+    const log = await this.logRepo.findOne({ where: { callId } });
+    if (log) {
+      if (data.callStatus) log.callStatus = data.callStatus as CallStatus;
+      if (data.duration) log.duration = data.duration;
+      if (data.recordingUrl) log.recordingUrl = data.recordingUrl;
+      await this.logRepo.save(log);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async processScheduledTasks() {
+    const now = new Date();
+    const tasks = await this.taskRepo.find({
+      where: { status: CallTaskStatus.PENDING, scheduleTime: LessThan(now) },
+    });
+
+    for (const task of tasks) {
+      try {
+        await this.taskRepo.update(task.id, { status: CallTaskStatus.RUNNING });
+        await this.processTask(task);
+      } catch (error) {
+        this.logger.error(`定时任务执行失败：${task.id}`, error);
+        await this.taskRepo.update(task.id, { status: CallTaskStatus.CANCELLED });
+      }
     }
   }
 
@@ -207,68 +332,18 @@ export class CallsService {
     }
   }
 
-  async setAgentNumber(tenantId: string, agentNumber: string) {
-    const currentConfig: any = {};
-    currentConfig.agentNumber = agentNumber;
-    await this.taskRepo.manager.update('tenants', { id: tenantId }, { config: currentConfig });
-    this.logger.log(`坐席号码已更新：${agentNumber}`);
-  }
-
-  async getCallLogs(tenantId: string, filters?: { 
-    customerId?: string; 
-    status?: string; 
-    page?: number; 
-    limit?: number 
+  async getCallLogs(tenantId: string, filters?: {
+    customerId?: string; status?: string; page?: number; limit?: number;
   }) {
     const query = this.logRepo.createQueryBuilder('log')
       .where('log.tenantId = :tenantId', { tenantId })
       .orderBy('log.createdAt', 'DESC');
 
-    if (filters?.customerId) {
-      query.andWhere('log.customerId = :customerId', { customerId: filters.customerId });
-    }
-    if (filters?.status) {
-      query.andWhere('log.callStatus = :status', { status: filters.status });
-    }
-
-    if (filters?.page && filters?.limit) {
-      query.skip((filters.page - 1) * filters.limit)
-         .take(filters.limit);
-    }
+    if (filters?.customerId) query.andWhere('log.customerId = :customerId', { customerId: filters.customerId });
+    if (filters?.status) query.andWhere('log.callStatus = :status', { status: filters.status });
+    if (filters?.page && filters?.limit) query.skip((filters.page - 1) * filters.limit).take(filters.limit);
 
     return query.getManyAndCount();
-  }
-
-  async updateCallLog(callId: string, data: { duration?: number; callStatus?: string; intentResult?: string; recordingUrl?: string }) {
-    const log = await this.logRepo.findOne({ where: { callId } });
-    if (log) {
-      if (data.callStatus) log.callStatus = data.callStatus as any;
-      if (data.duration) log.duration = data.duration;
-      if (data.recordingUrl) log.recordingUrl = data.recordingUrl;
-      await this.logRepo.save(log);
-      this.logger.log(`通话记录已更新：callId=${callId}`);
-    }
-  }
-
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
-  async processScheduledTasks() {
-    const now = new Date();
-    const tasks = await this.taskRepo.find({
-      where: {
-        status: 'pending',
-        scheduleTime: LessThan(now),
-      },
-    });
-
-    for (const task of tasks) {
-      try {
-        await this.taskRepo.update(task.id, { status: 'running' });
-        await this.processTask(task);
-      } catch (e) {
-        console.error(`任务 ${task.id} 执行失败:`, e);
-        await this.taskRepo.update(task.id, { status: 'cancelled' });
-      }
-    }
   }
 }
 

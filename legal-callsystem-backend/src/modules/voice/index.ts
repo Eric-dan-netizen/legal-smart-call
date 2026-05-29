@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { VoiceGatewayService } from './voice-gateway.service';
+import { VoiceGateway } from './voice.gateway';
 import { VoiceController } from './voice.controller';
 import { AsrService } from './asr.service';
 import { LlmService } from './llm.service';
@@ -18,6 +19,7 @@ import { AliyunSignatureService } from '../common/aliyun-signature.service';
   controllers: [VoiceController],
   providers: [
     VoiceGatewayService,
+    VoiceGateway,
     AsrService,
     LlmService,
     TtsService,
@@ -25,6 +27,7 @@ import { AliyunSignatureService } from '../common/aliyun-signature.service';
   ],
   exports: [
     VoiceGatewayService,
+    VoiceGateway,
     AsrService,
     LlmService,
     TtsService,

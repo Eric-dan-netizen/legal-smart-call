@@ -14,11 +14,13 @@ import { BlacklistService } from './blacklist.service';
 import { CallFrequencyService } from './call-frequency.service';
 import { AliyunCallService, TencentCallService } from './aliyun-call.service';
 import { AliyunSignatureService } from '../common/aliyun-signature.service';
+import { VoiceModule } from '../voice/index';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([CallTask, CallLog, Blacklist, CallFrequency, Customer]),
     ConfigModule,
+    VoiceModule,
   ],
   controllers: [CallsController, BlacklistController, FrequencyController],
   providers: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService, TencentCallService, AliyunSignatureService],

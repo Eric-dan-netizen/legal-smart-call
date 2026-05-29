@@ -10,6 +10,7 @@ import {
 import { Tenant } from '../tenants/tenant.entity';
 import { Customer } from '../customers/customer.entity';
 import { CallLog } from './call-log.entity';
+import { CallTaskStatus } from './types';
 
 @Entity('call_tasks')
 export class CallTask {
@@ -25,8 +26,8 @@ export class CallTask {
   @Column()
   scriptId: string;
 
-  @Column({ default: 'pending' })
-  status: 'pending' | 'running' | 'completed' | 'paused' | 'cancelled';
+  @Column({ type: 'varchar', default: CallTaskStatus.PENDING })
+  status: CallTaskStatus;
 
   @Column({ type: 'datetime' })
   scheduleTime: Date;

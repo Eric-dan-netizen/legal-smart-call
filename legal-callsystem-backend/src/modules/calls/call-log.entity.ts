@@ -8,6 +8,7 @@ import {
 import { Tenant } from '../tenants/tenant.entity';
 import { Customer } from '../customers/customer.entity';
 import { CallTask } from './call-task.entity';
+import { CallStatus } from './types';
 
 @Entity('call_logs')
 export class CallLog {
@@ -26,8 +27,8 @@ export class CallLog {
   @Column({ nullable: true })
   callId: string;
 
-  @Column()
-  callStatus: 'initiated' | 'calling' | 'answered' | 'no_answer' | 'busy' | 'invalid_number' | 'rejected' | 'failed' | 'completed';
+  @Column({ type: 'varchar', default: CallStatus.INITIATED })
+  callStatus: CallStatus;
 
   @Column({ default: 0 })
   duration: number;
