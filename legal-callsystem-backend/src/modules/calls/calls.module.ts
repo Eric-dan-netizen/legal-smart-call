@@ -9,6 +9,7 @@ import { Customer } from '../customers/customer.entity';
 import { CallsController } from './calls.controller';
 import { BlacklistController } from './blacklist.controller';
 import { FrequencyController } from './frequency.controller';
+import { DemoController } from './demo.controller';
 import { CallsService } from './calls.service';
 import { BlacklistService } from './blacklist.service';
 import { CallFrequencyService } from './call-frequency.service';
@@ -22,7 +23,7 @@ import { VoiceModule } from '../voice/index';
     ConfigModule,
     VoiceModule,
   ],
-  controllers: [CallsController, BlacklistController, FrequencyController],
+  controllers: [CallsController, BlacklistController, FrequencyController, DemoController],
   providers: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService, TencentCallService, AliyunSignatureService],
   exports: [CallsService, BlacklistService, CallFrequencyService, AliyunCallService],
 })

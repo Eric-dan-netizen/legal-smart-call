@@ -17,7 +17,8 @@
     "test:cov": "jest --coverage",
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "npm run typeorm -- migration:generate -d ./src/database/datasource.ts",
-    "migration:run": "npm run typeorm -- migration:run -d ./src/database/datasource.ts"
+    "migration:run": "npm run typeorm -- migration:run -d ./src/database/datasource.ts",
+    "seed": "ts-node scripts/seed.ts"
   },
   "dependencies": {
     "@nestjs-modules/ioredis": "^2.0.2",
